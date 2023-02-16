@@ -102,3 +102,9 @@ def zero_append(a, shape):
     out = np.zeros((shape[0],shape[1]))
     out = out.at[:a.shape[0],:a.shape[1]].set(a)
     return out
+
+def column_in_values(column: np.array, values: np.array):
+    column = np.expand_dims(column, 1)
+    column = np.full((column.shape[0], values.shape[0]), column)
+    values = np.full((column.shape[0], values.shape[0]), values)
+    return np.any(np.array(column == values, dtype="int32"), 1)
