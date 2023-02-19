@@ -23,8 +23,18 @@ def initial_edge_features(graps_node_features, nb_graphs, max_nodes):
 
     return graphs_edge_features
 
+def calc_grap_conv_pattern(A, batched=True):
+  A_tilde = A + np.identity(A.shape[1])
+  A_tilde = A_tilde.at[A_tilde == 2].set(1)
+  if batched:
+    D_tilde = np.sum(A_tilde, axis=2)
+  else:
+    D_tilde = np.sum(A_tilde, axis=1)
+  D_tilde = 1/np.sqrt(D_tilde)
+  D_tilde = diag(D_tilde, batched)
+  return D_tilde @ A_tilde @ D_tilde
 
-def graph_conv_pattern(As):
+def calc_graph_conv_patterns(As):
     """
     calcualte the graph convolution pattern for each graph
     """
@@ -44,7 +54,7 @@ def pattern_preperation(As, nb_graphs, max_nodes, two_wl_radius = [1]):
     As = [zero_append(a, (max_nodes, max_nodes)) for a in As]
 
     # calculate the graph convolution pattern for each graph
-    graph_conv_pattern = graph_conv_pattern(As)
+    graph_conv_pattern = calc_graph_conv_patterns(As)
 
     # calculate the 2 wl pattern (or patterns if multiple radia are given)
     two_wl_pattern = []
