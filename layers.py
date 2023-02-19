@@ -3,7 +3,7 @@ from neural_tangents import Kernel
 from neural_tangents._src.stax.requirements import Bool, Diagonal, get_diagonal_outer_prods, layer, mean_and_var, requires, supports_masking
 from jax import numpy as np
 import jax
-from utils import row_wise_karthesian_prod
+from utils import *
 
 # pattern is a two dimensional array of shape k x 4
 # a edge list from the 4 dimensional intersected adjacency matrix
