@@ -4,6 +4,7 @@ import neural_tangents as nt
 from neural_tangents import stax
 from jax import numpy as np
 import jax
+from utils import *
 
 def initial_edge_features(graps_node_features, nb_graphs, max_nodes):
     """
