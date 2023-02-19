@@ -23,7 +23,7 @@ def initial_edge_features(graps_node_features, nb_graphs, max_nodes):
 
     return graphs_edge_features
 
-def calc_grap_conv_pattern(A, batched=True):
+def calc_graph_conv_pattern(A, batched=True):
   A_tilde = A + np.identity(A.shape[1])
   A_tilde = A_tilde.at[A_tilde == 2].set(1)
   if batched:
@@ -40,7 +40,7 @@ def calc_graph_conv_patterns(As):
     """
     patterns = list()
     for A in As:
-        p = calc_grap_conv_pattern(A, False)
+        p = calc_graph_conv_pattern(A, False)
         patterns.append(expand_pattern_at_channels_dim(p, 7, False))
     patterns = np.array(patterns)
     return patterns
