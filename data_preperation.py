@@ -23,6 +23,27 @@ def initial_edge_features(graps_node_features, nb_graphs, max_nodes):
 
     return graphs_edge_features
 
+
+def diag(x, batched=True):
+  """
+  Arange a 2-dim arrary into a 3-dim array.
+  Where the 3-dim array has in the channel
+  dimension diagonal matricies filled
+  with the values from the 2-dim input.
+  e.g 
+  diag(np.array[[1,3],[3,4], [5,6]])
+  = [ [[1,0], [0,3]], [[3,0], [0,4]], [[5,0], [0,6]]]
+  """
+  if batched:
+    out = np.zeros((x.shape[0], x.shape[1], x.shape[1]))
+    for i in range(0, x.shape[1]):
+      out = out.at[:,i,i].set(x[:,i])
+  else:
+    out = np.zeros((x.shape[0], x.shape[0]))
+    out = out.at[np.diag_indices(out.shape[0])].set(x)
+  return out
+
+
 def calc_graph_conv_pattern(A, batched=True):
   A_tilde = A + np.identity(A.shape[1])
   A_tilde = A_tilde.at[A_tilde == 2].set(1)
@@ -33,6 +54,28 @@ def calc_graph_conv_pattern(A, batched=True):
   D_tilde = 1/np.sqrt(D_tilde)
   D_tilde = diag(D_tilde, batched)
   return D_tilde @ A_tilde @ D_tilde
+
+def expand_pattern_at_channels_dim(pattern_in, nr_channels, batched=True):
+  """
+  Expand a (batched) two dimensional pattern 
+  into a three dimensional pattern. The size of the added 
+  dimension is determined by nr_channels.
+  The channe
+  """
+
+  if batched:
+      out = np.zeros((pattern_in.shape[0],
+                          pattern_in.shape[1], nr_channels, 
+                          pattern_in.shape[1], nr_channels))
+      for k in range(pattern_in.shape[0]):
+        for i in range(nr_channels):
+          out = out.at[k,:,i,:,i].set(pattern_in[k,:])
+  else:
+    out = np.zeros((pattern_in.shape[1], nr_channels, 
+                    pattern_in.shape[1], nr_channels))
+    for i in range(nr_channels):
+      out = out.at[:,i,:,i].set(pattern_in)
+  return out
 
 def calc_graph_conv_patterns(As):
     """
