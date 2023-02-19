@@ -101,6 +101,7 @@ def pattern_preperation(As, nb_graphs, max_nodes, two_wl_radius = [1]):
     
     # calculate the 2 wl pattern (or patterns if multiple radia are given)
     As = np.array(As)
+    print(As.shape)
     two_wl_pattern = []
     for radius in two_wl_radius:
         if radius == 1:
