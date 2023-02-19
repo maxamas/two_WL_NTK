@@ -98,8 +98,9 @@ def pattern_preperation(As, nb_graphs, max_nodes, two_wl_radius = [1]):
 
     # calculate the graph convolution pattern for each graph
     graph_conv_pattern = calc_graph_conv_patterns(As)
-
+    
     # calculate the 2 wl pattern (or patterns if multiple radia are given)
+    As = np.array(As)
     two_wl_pattern = []
     for radius in two_wl_radius:
         if radius == 1:
