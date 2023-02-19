@@ -40,7 +40,7 @@ def calc_graph_conv_patterns(As):
     """
     patterns = list()
     for A in As:
-        p = grap_conv_pattern(A, False)
+        p = calc_grap_conv_pattern(A, False)
         patterns.append(expand_pattern_at_channels_dim(p, 7, False))
     patterns = np.array(patterns)
     return patterns
