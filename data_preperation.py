@@ -1,6 +1,9 @@
 from torch_geometric.datasets import TUDataset
 from torch_geometric.loader import DataLoader
-
+import neural_tangents as nt
+from neural_tangents import stax
+from jax import numpy as np
+import jax
 
 def initial_edge_features(graps_node_features, nb_graphs, max_nodes):
     """
