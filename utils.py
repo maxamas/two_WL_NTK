@@ -108,3 +108,26 @@ def column_in_values(column: np.array, values: np.array):
     column = np.full((column.shape[0], values.shape[0]), column)
     values = np.full((column.shape[0], values.shape[0]), values)
     return np.any(np.array(column == values, dtype="int32"), 1)
+
+  
+def expand_pattern_at_channels_dim(pattern_in, nr_channels, batched=True):
+  """
+  Expand a (batched) two dimensional pattern 
+  into a three dimensional pattern. The size of the added 
+  dimension is determined by nr_channels.
+  The channe
+  """
+
+  if batched:
+      out = np.zeros((pattern_in.shape[0],
+                          pattern_in.shape[1], nr_channels, 
+                          pattern_in.shape[1], nr_channels))
+      for k in range(pattern_in.shape[0]):
+        for i in range(nr_channels):
+          out = out.at[k,:,i,:,i].set(pattern_in[k,:])
+  else:
+    out = np.zeros((pattern_in.shape[1], nr_channels, 
+                    pattern_in.shape[1], nr_channels))
+    for i in range(nr_channels):
+      out = out.at[:,i,:,i].set(pattern_in)
+  return out
