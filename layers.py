@@ -27,13 +27,15 @@ def two_wl_aggregation(n_nodes):
     """
     
     init_fn = lambda rng, input_shape: (input_shape, ())
+
     
     def apply_fn(params,
                inputs: np.ndarray,
                *,
                pattern: Optional[np.ndarray] = None,
                **kwargs):
-        num_segments = inputs.shape[0] * n_nodes**2
+               
+        num_segments = inputs.shape[0] * inputs.shape[1]
         
         # edges from v_i to v_j
         # pattern := [A,B,C,D]
