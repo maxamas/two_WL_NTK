@@ -15,6 +15,9 @@ from utils import *
 # Thus e.g a row from the pattern array [A,B,C,D] tells us,
 # that node D is a neighboor of nodes B and C in batch A.
 
+
+# TODO: remove the n_nodes argument
+
 @layer
 @supports_masking(remask_kernel=False)
 def two_wl_aggregation(n_nodes):
@@ -34,7 +37,7 @@ def two_wl_aggregation(n_nodes):
                *,
                pattern: Optional[np.ndarray] = None,
                **kwargs):
-               
+
         num_segments = inputs.shape[0] * inputs.shape[1]
         
         # edges from v_i to v_j
@@ -43,11 +46,11 @@ def two_wl_aggregation(n_nodes):
         # linear_index([A,B,C]) => if we have a batched adjacency matrix
         # what is the index of nodes B, C in batch A, if we index the 
         # array 3 dimensional array linear (c-style)
-        e_ij = linear_index(pattern[:,[0,1,2]], inputs.shape)
+        e_ij = linear_index(pattern[:,[0,1,2]], (inputs.shape[0], n_nodes, n_nodes, n_nodes))
         # edges from v_i to v_l
-        e_il = linear_index(pattern[:,[0,1,3]], inputs.shape)
+        e_il = linear_index(pattern[:,[0,1,3]], (inputs.shape[0], n_nodes, n_nodes, n_nodes))
         # edges from v_l to v_j
-        e_lj = linear_index(pattern[:,[0,3,2]], inputs.shape)
+        e_lj = linear_index(pattern[:,[0,3,2]], (inputs.shape[0], n_nodes, n_nodes, n_nodes))
 
         graphs_edge_features = np.reshape(inputs, (-1, inputs.shape[3]))
         x_gamma_1 = np.take(graphs_edge_features, e_il, axis=0)
