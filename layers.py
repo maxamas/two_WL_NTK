@@ -75,6 +75,13 @@ def two_wl_aggregation(n_nodes):
         # arrange the incoming kernel matrix as a flatt array
         # ntk_linear = np.reshape(k.ntk, (-1, 1))
         # we dont need to reshape, as take works also on the multidimensional array
+        # the kernel is of shape 
+        b_A = Kernel.shape[0]
+        b_B = Kernel.shape[1]
+        h_A = Kernel.shape[2]
+        h_B = Kernel.shape[3]
+        w_A = Kernel.shape[4]
+        w_B = Kernel.shape[5]
 
         # a double sum is one sum over the karthesian product of 
         # the sets the two sums sum.
@@ -102,11 +109,11 @@ def two_wl_aggregation(n_nodes):
         # column Db.
 
         # note: ib <=> i bar
-        e_i_j_ib_jb = linear_index(patterns[:,[0,1,2,4,3,5]], (inputs.shape[0], n_nodes, n_nodes))
-        e_i_a_ib_ab = linear_index(patterns[:,[0,1,2,6,3,7]], (inputs.shape[0], n_nodes, n_nodes))
-        e_i_a_ab_jb = linear_index(patterns[:,[0,1,2,6,7,5]], (inputs.shape[0], n_nodes, n_nodes))
-        e_a_j_ib_ab = linear_index(patterns[:,[0,1,6,4,3,7]], (inputs.shape[0], n_nodes, n_nodes))
-        e_a_j_ab_jb = linear_index(patterns[:,[0,1,6,4,7,5]], (inputs.shape[0], n_nodes, n_nodes))
+        e_i_j_ib_jb = linear_index(patterns[:,[0,1,2,4,3,5]], (b_A, b_B, h_A, h_A, h_A, h_A))
+        e_i_a_ib_ab = linear_index(patterns[:,[0,1,2,6,3,7]], (b_A, b_B, h_A, h_A, h_A, h_A))
+        e_i_a_ab_jb = linear_index(patterns[:,[0,1,2,6,7,5]], (b_A, b_B, h_A, h_A, h_A, h_A))
+        e_a_j_ib_ab = linear_index(patterns[:,[0,1,6,4,3,7]], (b_A, b_B, h_A, h_A, h_A, h_A))
+        e_a_j_ab_jb = linear_index(patterns[:,[0,1,6,4,7,5]], (b_A, b_B, h_A, h_A, h_A, h_A))
 
         theta_i_a_ib_ab = jax.ops.segment_sum(np.take(k.ntk, e_i_a_ib_ab), e_i_j_ib_jb, num_segments)
         theta_i_a_ab_jb = jax.ops.segment_sum(np.take(k.ntk, e_i_a_ab_jb), e_i_j_ib_jb, num_segments)
