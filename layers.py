@@ -102,11 +102,11 @@ def two_wl_aggregation(n_nodes):
         # column Db.
 
         # note: ib <=> i bar
-        e_i_j_ib_jb = linear_index(patterns[:,[0,1,2,4,3,5]], k.ntk.shape)
-        e_i_a_ib_ab = linear_index(patterns[:,[0,1,2,6,3,7]], k.ntk.shape)
-        e_i_a_ab_jb = linear_index(patterns[:,[0,1,2,6,7,5]], k.ntk.shape)
-        e_a_j_ib_ab = linear_index(patterns[:,[0,1,6,4,3,7]], k.ntk.shape)
-        e_a_j_ab_jb = linear_index(patterns[:,[0,1,6,4,7,5]], k.ntk.shape)
+        e_i_j_ib_jb = linear_index(patterns[:,[0,1,2,4,3,5]], (inputs.shape[0], n_nodes, n_nodes))
+        e_i_a_ib_ab = linear_index(patterns[:,[0,1,2,6,3,7]], (inputs.shape[0], n_nodes, n_nodes))
+        e_i_a_ab_jb = linear_index(patterns[:,[0,1,2,6,7,5]], (inputs.shape[0], n_nodes, n_nodes))
+        e_a_j_ib_ab = linear_index(patterns[:,[0,1,6,4,3,7]], (inputs.shape[0], n_nodes, n_nodes))
+        e_a_j_ab_jb = linear_index(patterns[:,[0,1,6,4,7,5]], (inputs.shape[0], n_nodes, n_nodes))
 
         theta_i_a_ib_ab = jax.ops.segment_sum(np.take(k.ntk, e_i_a_ib_ab), e_i_j_ib_jb, num_segments)
         theta_i_a_ab_jb = jax.ops.segment_sum(np.take(k.ntk, e_i_a_ab_jb), e_i_j_ib_jb, num_segments)
