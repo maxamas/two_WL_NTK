@@ -76,12 +76,12 @@ def two_wl_aggregation(n_nodes):
         # ntk_linear = np.reshape(k.ntk, (-1, 1))
         # we dont need to reshape, as take works also on the multidimensional array
         # the kernel is of shape 
-        b_A = k.ntk.shape.shape[0]
-        b_B = k.ntk.shape.shape[1]
-        h_A = k.ntk.shape.shape[2]
-        h_B = k.ntk.shape.shape[3]
-        w_A = k.ntk.shape.shape[4]
-        w_B = k.ntk.shape.shape[5]
+        b_A = k.ntk.shape[0]
+        b_B = k.ntk.shape[1]
+        h_A = k.ntk.shape[2]
+        h_B = k.ntk.shape[3]
+        w_A = k.ntk.shape[4]
+        w_B = k.ntk.shape[5]
 
         # a double sum is one sum over the karthesian product of 
         # the sets the two sums sum.
