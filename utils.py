@@ -102,7 +102,7 @@ def zero_append(a, shape):
     if len(shape) == 2:
       out = np.zeros((shape[0],shape[1]))
       out = out.at[:a.shape[0],:a.shape[1]].set(a)
-    else if len(shape) == 3:
+    elif len(shape) == 3:
       out = np.zeros((shape[0],shape[1],shape[2]))
       out = out.at[:a.shape[0],:a.shape[1],:a.shape[2]].set(a)
     else:
