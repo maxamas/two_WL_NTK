@@ -108,6 +108,8 @@ def pattern_preperation(edge_index, nb_graphs, max_nodes, two_wl_radius = [1]):
     As: List, 
     """
 
+    max_edges = max([x.shape[1] for x in edge_indexs])
+
     # need the adjacency matrix for the 2WL pattern
     As = [to_dense(e, len(e)) for e in edge_index]
     # unify the sizes of all adjacency matricies in the dataset, for the pattern callculation
@@ -117,12 +119,10 @@ def pattern_preperation(edge_index, nb_graphs, max_nodes, two_wl_radius = [1]):
     # graph_conv_pattern = calc_graph_conv_patterns(As)
 
     # calculate the graph convolution pattern for each graph (sparse pattern)
-    edge_index_a = np.array(edge_index[0])
-    for i in range(1,len(edge_index)):
-      edge_index_a = np.append(edge_index_a, np.array(edge_index[i]), axis=1)
-    graph_conv_pattern = np.swapaxes(edge_index_a, 1,2)
-    graph_conv_pattern = np.expand_dims(graph_conv_pattern, 2)
-    graph_conv_pattern = np.array(graph_conv_pattern, dtype="int32")
+    edge_index = np.array([zero_append(x, (2,max_edges))  for x in edge_index])
+    graph_conv_pattern = np.swapaxes(edge_indexs, 1,2)
+    graph_conv_pattern = np.expand_dims(pattern, 2)
+    graph_conv_pattern = np.array(pattern, dtype="int32")
     
     # calculate the 2 wl pattern (or patterns if multiple radia are given)
     As = np.array(As)
