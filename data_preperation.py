@@ -109,7 +109,7 @@ def pattern_preperation(edge_index, nb_graphs, max_nodes, two_wl_radius = [1]):
     """
 
     # need the adjacency matrix for the 2WL pattern
-    As = [to_dense(data.edge_index, len(e)) for e in edge_index for data in dataset]
+    As = [to_dense(e, len(e)) for e in edge_index]
     # unify the sizes of all adjacency matricies in the dataset, for the pattern callculation
     As = [zero_append(a, (max_nodes, max_nodes)) for a in As]
 
