@@ -117,7 +117,8 @@ def pattern_preperation(edge_index, nb_graphs, max_nodes, two_wl_radius = [1]):
     # graph_conv_pattern = calc_graph_conv_patterns(As)
 
     # calculate the graph convolution pattern for each graph (sparse pattern)
-    graph_conv_pattern = np.swapaxes(edge_indexs, 1,2)
+    edge_index = np.array(edge_index)
+    graph_conv_pattern = np.swapaxes(edge_index, 1,2)
     graph_conv_pattern = np.expand_dims(graph_conv_pattern, 2)
     graph_conv_pattern = np.array(graph_conv_pattern, dtype="int32")
     
