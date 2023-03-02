@@ -6,7 +6,7 @@ from jax import numpy as np
 import jax
 from utils import *
 
-def initial_edge_features(graps_node_features, graps_edge_features, nb_graphs, max_nodes):
+def initial_edge_features(graps_node_features, graphs_edge_features, edge_featur_init, nb_graphs, max_nodes):
     """
     get the initial edge feature matrix for the 2 WL 
     algorithm.
@@ -14,16 +14,29 @@ def initial_edge_features(graps_node_features, graps_edge_features, nb_graphs, m
     as a batch x nodes x nodes x channels array
     """
     feature_dim = graps_node_features[0][0].shape[0]
-
-    graphs_edge_features_from_nodes = np.zeros((graps_edge_features.shape))
-
+    # feature_dim = graps_node_features[0].shape[1]
+    graphs_edge_features_from_nodes = np.zeros((nb_graphs, max_nodes, max_nodes, feature_dim))
     for k, node_features in enumerate(graps_node_features):
         for i, node_feature in enumerate(node_features):
             graphs_edge_features_from_nodes = graphs_edge_features_from_nodes.at[k,i,i,:].set(node_feature)
 
-    np.append(graphs_edge_features_from_nodes, graphs_edge_features, axis=1)
+    if graphs_edge_features == None:
 
-    return graphs_edge_features_from_nodes + graphs_edge_features
+      if edge_featur_init == "ONE_HOT":
+        graphs_edge_features = list()
+        for k, node_features in enumerate(graps_node_features):
+          nb_nodes = node_features.shape[0]
+          tmp = np.identity(nb_nodes**2)
+          tmp = np.reshape(tmp, (nb_nodes, nb_nodes, nb_nodes**2))
+          graphs_edge_features.append(zero_append(tmp, (max_nodes, max_nodes, max_nodes**2)))
+          graphs_edge_features = np.array(graphs_edge_features)
+      if edge_featur_init == "BIAS":
+        graphs_edge_features = np.full(graphs_edge_features_from_nodes.shape[:-1], 1)
+        graphs_edge_features = np.expand_dims(graphs_edge_features, 3)
+      else:
+        raise Exception("Parameter edge_featur_init must be ONE_HOT or BIAS")
+    
+    return np.append(graphs_edge_features_from_nodes, graphs_edge_features, axis=3)
 
 
 def diag(x, batched=True):
@@ -120,10 +133,10 @@ def pattern_preperation(edge_index, nb_graphs, max_nodes, two_wl_radius = [1]):
     return graph_conv_pattern, two_wl_pattern
 
 
-def feature_prepeation(graps_node_features, graps_edge_features, nb_graphs, max_nodes):
+def feature_prepeation(graps_node_features, graps_edge_features, edge_featur_init, nb_graphs, max_nodes):
     
     # update the edge features. If a graph has no edge features given, use a "one hot encoding" for the edges.
-    graps_edge_features = initial_edge_features(graps_node_features, graps_edge_features, nb_graphs, max_nodes)
+    graps_edge_features = initial_edge_features(graps_node_features, graps_edge_features, edge_featur_init, nb_graphs, max_nodes)
 
     # from a list of node features to a batched tensor of node features for the graph conv alg.
     graps_node_features = [zero_append(ef, (max_nodes, ef.shape[1])) for ef in graps_node_features]
@@ -132,7 +145,7 @@ def feature_prepeation(graps_node_features, graps_edge_features, nb_graphs, max_
     return graps_node_features, graps_edge_features
 
 
-def data_preperation(edge_index, graps_node_features, graps_edge_features, ys, dataset_name, base_path, two_wl_radius):
+def data_preperation(edge_index, graps_node_features, graps_edge_features, edge_featur_init, ys, dataset_name, base_path, two_wl_radius):
     """
     As, graps_node_features, ys: Lists
     dataset_name, base_path: Strings
@@ -142,7 +155,7 @@ def data_preperation(edge_index, graps_node_features, graps_edge_features, ys, d
     nb_graphs = len(graps_node_features)
     max_nodes = len(max(graps_node_features, key=lambda x: len(x)))
 
-    graps_node_features, graps_edge_features = feature_prepeation(graps_node_features, graps_edge_features, nb_graphs, max_nodes)
+    graps_node_features, graps_edge_features = feature_prepeation(graps_node_features, graps_edge_features, edge_featur_init, nb_graphs, max_nodes)
     graph_conv_pattern, two_wl_pattern = pattern_preperation(edge_index, nb_graphs, max_nodes, two_wl_radius)
 
     np.save(base_path + f"/ys", ys)
