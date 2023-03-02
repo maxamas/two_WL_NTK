@@ -38,7 +38,7 @@ def two_wl_aggregation(n_nodes):
                pattern: Optional[np.ndarray] = None,
                **kwargs):
 
-        num_segments = inputs.shape[0] * inputs.shape[1]
+        num_segments = inputs.shape[0] * inputs.shape[1] * inputs.shape[2]
         
         # edges from v_i to v_j
         # pattern := [A,B,C,D]
