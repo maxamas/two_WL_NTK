@@ -99,14 +99,14 @@ def zero_append(a, shape):
     Add zero columns and rows to the array 
     a, to make it of shape size x size.
     """
-    if len(shape)==2:
+    if len(shape) == 2:
       out = np.zeros((shape[0],shape[1]))
       out = out.at[:a.shape[0],:a.shape[1]].set(a)
-    else if len(shape)==3:
+    else if len(shape) == 3:
       out = np.zeros((shape[0],shape[1],shape[2]))
       out = out.at[:a.shape[0],:a.shape[1],:a.shape[2]].set(a)
     else:
-      raise Exception(f"zero_append is not implemented for shape of lenght {len(shape)}")
+      raise Exception(f"zero_append is not implemented for shape of lenght shape {len(shape)}")
     return out
 
 def column_in_values(column: np.array, values: np.array):
