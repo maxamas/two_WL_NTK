@@ -128,10 +128,10 @@ def pattern_preperation(edge_index, nb_graphs, max_nodes, two_wl_radius = [1]):
     As = np.array(As)
     two_wl_pattern = []
     for radius in two_wl_radius:
-        if radius == 1:
-            As_int = neigbourhood_intersections(As)
-            As_pattern = np.transpose(np.array(np.nonzero(As_int)))
-        two_wl_pattern.append(As_pattern)
+      As = r_power_adjacency_matrix(As, r) # does nothing, if r = 1
+      As_int = neigbourhood_intersections(As)
+      As_pattern = np.transpose(np.array(np.nonzero(As_int)))
+      two_wl_pattern.append(As_pattern)
 
     return graph_conv_pattern, two_wl_pattern
 

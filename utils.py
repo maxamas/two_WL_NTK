@@ -61,6 +61,20 @@ def linear_index(A, ns):
     A: A edge list of shape [-1, k]
     ns: A list of lenght k giving the size of each dimension
     """
+    # TODO: use ravel_multi_index 
+    # pattern_1 = pattern[:,[0]]
+    # pattern_2 = pattern[:,[1]]
+    # pattern_3 = pattern[:,[2]]
+
+    # pattern = p1
+    # n_nodes=28
+    # inputs = x1
+    # e_ij = linear_index(pattern[:,[0,1,2]], (inputs.shape[0], n_nodes, n_nodes))
+    # e_ij_2 = np.ravel_multi_index([pattern_1, pattern_2, pattern_3], (inputs.shape[0], n_nodes, n_nodes))
+    # e_ij_2 = np.squeeze(e_ij_2)
+
+    # print(e_ij == e_ij_2)
+    
     ns = list(ns)
     ns = ns[1:] + [1]
     out = np.zeros(A.shape[0])
@@ -85,6 +99,8 @@ def r_power_adjacency_matrix(A, r):
   Calculate the r-power for adjacency matrix A.
   From a 3d tensor with batch dimension
   """
+  if r == 1:
+    return A
   last_As = A
   for i in range(r-1):
     next_As = np.matmul(last_As, A)
