@@ -18,6 +18,7 @@ def initial_edge_features(
     """
     feature_dim = graps_node_features[0][0].shape[0]
     # feature_dim = graps_node_features[0].shape[1]
+    print(f"create a array of shape", nb_graphs, max_nodes, max_nodes, feature_dim)
     graphs_edge_features_from_nodes = np.zeros(
         (nb_graphs, max_nodes, max_nodes, feature_dim)
     )
