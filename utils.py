@@ -3,6 +3,7 @@ from neural_tangents import stax
 from jax import numpy as np
 import jax
 
+
 def neigbourhood_intersections(A):
     """
     Interpretation of out:
@@ -14,10 +15,10 @@ def neigbourhood_intersections(A):
     # A_full_1 = np.full((A.shape[0], A.shape[1], A.shape[2], A.shape[2]), A)
     # does not work if dim 0 is > 1. Thus loop over the batch dimension
 
-    A_full_1 = np.full((A.shape[1], A.shape[2], A.shape[2]), A[0,:])
+    A_full_1 = np.full((A.shape[1], A.shape[2], A.shape[2]), A[0, :])
     A_full_1 = np.expand_dims(A_full_1, 0)
     for i in range(1, A.shape[0]):
-        A_full_1_tmp = np.full((A.shape[1], A.shape[2], A.shape[2]), A[i,:])
+        A_full_1_tmp = np.full((A.shape[1], A.shape[2], A.shape[2]), A[i, :])
         A_full_1_tmp = np.expand_dims(A_full_1_tmp, 0)
         A_full_1 = np.append(A_full_1, A_full_1_tmp, 0)
     # flip stacked A such that the height x wide slices become the depth x wide slices
@@ -25,9 +26,10 @@ def neigbourhood_intersections(A):
     out = np.array(np.logical_and(A_full_1, A_full_2), dtype="int32")
     return out
 
+
 def row_wise_karthesian_prod(a, b):
     """
-    Returns the row wise cartesian product of 
+    Returns the row wise cartesian product of
     two arrays a and b.
     a: a_n x a_m
     b: b_n x b_m
@@ -51,7 +53,8 @@ def row_wise_karthesian_prod(a, b):
     a_2 = np.reshape(a_2, (-1, a.shape[1]))
     b_3 = np.reshape(b_3, (-1, b.shape[1]))
     out = np.append(a_2, b_3, axis=1)
-    return out 
+    return out
+
 
 def linear_index(A, ns):
     """
@@ -61,7 +64,7 @@ def linear_index(A, ns):
     A: A edge list of shape [-1, k]
     ns: A list of lenght k giving the size of each dimension
     """
-    # TODO: use ravel_multi_index 
+    # TODO: use ravel_multi_index
     # pattern_1 = pattern[:,[0]]
     # pattern_2 = pattern[:,[1]]
     # pattern_3 = pattern[:,[2]]
@@ -74,56 +77,62 @@ def linear_index(A, ns):
     # e_ij_2 = np.squeeze(e_ij_2)
 
     # print(e_ij == e_ij_2)
-    
+
     ns = list(ns)
     ns = ns[1:] + [1]
     out = np.zeros(A.shape[0])
     for i, n in enumerate(ns):
-        out += A[:,i] * np.product(np.array(ns[i:]))
+        out += A[:, i] * np.product(np.array(ns[i:]))
     return np.array(out, dtype="int32")
 
+
 def to_dense(node_list, size):
-  """
-  Naive implementation, to get a
-  adjacency matrix from a node list.
-  Node list 2xn -> adjacency matrix nxn
-  """
-  A = np.zeros((size, size))
-  node_list = node_list.tolist()
-  for i,j in zip(node_list[0], node_list[1]):
-    A = A.at[i,j].set(1)
-  return A
-  
-def r_power_adjacency_matrix(A, r):
-  """
-  Calculate the r-power for adjacency matrix A.
-  From a 3d tensor with batch dimension
-  """
-  if r == 1:
+    """
+    Naive implementation, to get a
+    adjacency matrix from a node list.
+    Node list 2xn -> adjacency matrix nxn
+    """
+    A = np.zeros((size, size))
+    node_list = node_list.tolist()
+    for i, j in zip(node_list[0], node_list[1]):
+        A = A.at[i, j].set(1)
     return A
-  last_As = A
-  for i in range(r-1):
-    next_As = np.matmul(last_As, A)
-    next_As = next_As + last_As
-    next_As = next_As.at[next_As != 0].set(1)
-    last_As = next_As
-  
-  return next_As
+
+
+def r_power_adjacency_matrix(A, r):
+    """
+    Calculate the r-power for adjacency matrix A.
+    From a 3d tensor with batch dimension
+    """
+    if r == 1:
+        return A
+    last_As = A
+    for i in range(r - 1):
+        next_As = np.matmul(last_As, A)
+        next_As = next_As + last_As
+        next_As = next_As.at[next_As != 0].set(1)
+        last_As = next_As
+
+    return next_As
+
 
 def zero_append(a, shape):
     """
-    Add zero columns and rows to the array 
+    Add zero columns and rows to the array
     a, to make it of shape size x size.
     """
     if len(shape) == 2:
-      out = np.zeros((shape[0],shape[1]))
-      out = out.at[:a.shape[0],:a.shape[1]].set(a)
+        out = np.zeros((shape[0], shape[1]))
+        out = out.at[: a.shape[0], : a.shape[1]].set(a)
     elif len(shape) == 3:
-      out = np.zeros((shape[0],shape[1],shape[2]))
-      out = out.at[:a.shape[0],:a.shape[1],:a.shape[2]].set(a)
+        out = np.zeros((shape[0], shape[1], shape[2]))
+        out = out.at[: a.shape[0], : a.shape[1], : a.shape[2]].set(a)
     else:
-      raise Exception(f"zero_append is not implemented for shape of lenght shape {len(shape)}")
+        raise Exception(
+            f"zero_append is not implemented for shape of lenght shape {len(shape)}"
+        )
     return out
+
 
 def column_in_values(column: np.array, values: np.array):
     column = np.expand_dims(column, 1)
@@ -131,25 +140,32 @@ def column_in_values(column: np.array, values: np.array):
     values = np.full((column.shape[0], values.shape[0]), values)
     return np.any(np.array(column == values, dtype="int32"), 1)
 
-  
-def expand_pattern_at_channels_dim(pattern_in, nr_channels, batched=True):
-  """
-  Expand a (batched) two dimensional pattern 
-  into a three dimensional pattern. The size of the added 
-  dimension is determined by nr_channels.
-  The channe
-  """
 
-  if batched:
-      out = np.zeros((pattern_in.shape[0],
-                          pattern_in.shape[1], nr_channels, 
-                          pattern_in.shape[1], nr_channels))
-      for k in range(pattern_in.shape[0]):
+def expand_pattern_at_channels_dim(pattern_in, nr_channels, batched=True):
+    """
+    Expand a (batched) two dimensional pattern
+    into a three dimensional pattern. The size of the added
+    dimension is determined by nr_channels.
+    The channe
+    """
+
+    if batched:
+        out = np.zeros(
+            (
+                pattern_in.shape[0],
+                pattern_in.shape[1],
+                nr_channels,
+                pattern_in.shape[1],
+                nr_channels,
+            )
+        )
+        for k in range(pattern_in.shape[0]):
+            for i in range(nr_channels):
+                out = out.at[k, :, i, :, i].set(pattern_in[k, :])
+    else:
+        out = np.zeros(
+            (pattern_in.shape[1], nr_channels, pattern_in.shape[1], nr_channels)
+        )
         for i in range(nr_channels):
-          out = out.at[k,:,i,:,i].set(pattern_in[k,:])
-  else:
-    out = np.zeros((pattern_in.shape[1], nr_channels, 
-                    pattern_in.shape[1], nr_channels))
-    for i in range(nr_channels):
-      out = out.at[:,i,:,i].set(pattern_in)
-  return out
+            out = out.at[:, i, :, i].set(pattern_in)
+    return out
