@@ -12,6 +12,7 @@ from jax.example_libraries import optimizers
 from jax.nn import log_softmax
 from jax._src.typing import Array, Shape
 from typing import Callable, Tuple, List
+import numpy as np
 
 
 def accuracy(ys, logits):
