@@ -217,7 +217,7 @@ def train_loop(
 
         if epoch % 10 == 0:
             print(
-                f"\t train loss: {train_losses[-1]} | val loss: {val_losses[-1]} | train acc: {train_acc[-1]} | val acc: {val_acc[-1]}"
+                f"\t train loss: {train_losses[-1]:.2f} | val loss: {val_losses[-1]:.2f} | train acc: {train_acc[-1]:.4f} | val acc: {val_acc[-1]:.4f}"
             )
 
     return train_losses, val_losses, train_acc, val_acc
