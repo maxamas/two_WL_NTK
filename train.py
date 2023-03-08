@@ -52,8 +52,9 @@ def val_test_split_pattern_array(
     the 2WL pattern has the patterns of all batches in on 2dim array.
     """
     if method in ["gcn", "GCN"]:
-        pattern_val = pattern[val_samples, :]
-        pattern_train = pattern[train_samples, :]
+        pattern_val = jnp.take(pattern, val_samples, axis=0)
+        pattern_train = jnp.take(train_samples, val_samples, axis=0)
+
         return pattern_train, pattern_val
 
     elif method in ["2WL", "TWL", "2wl", "twl"]:
@@ -76,7 +77,7 @@ def cv_splits(
     # TODO implement the balance_classes option
 
     dataset_lenght = Y.shape[0]
-    indices = np.array(range(dataset_lenght))
+    indices = np.array(range(dataset_lenght), dtype="int32")
     key = random.PRNGKey(1701)
     key, subkey = jax.random.split(key)
     indices = random.permutation(subkey, indices)
@@ -131,11 +132,11 @@ def cross_validate(
             :,
         ]
 
-        X_val = X[val_samples, :]
-        Y_val = Y[val_samples, :]
+        X_val = jnp.take(X, val_samples, axis=0)
+        Y_val = jnp.take(Y, val_samples, axis=0)
 
-        X_train = X[train_samples, :]
-        Y_train = Y[train_samples, :]
+        X_train = jnp.take(X, train_samples, axis=0)
+        Y_train = jnp.take(Y, train_samples, axis=0)
 
         pattern_train, pattern_val = val_test_split_pattern_array(
             pattern, train_samples, val_samples, nn_type
