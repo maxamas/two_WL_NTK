@@ -137,8 +137,7 @@ def cross_validate(
         val_samples = jnp.reshape(val_samples, [-1])
         train_samples = jnp.reshape(train_samples, [-1])
         print(
-            f"nb train samples: {train_samples.shape[0]} | nb val samples:",
-            {val_samples.shape[0]},
+            f"nb train samples: {train_samples.shape[0]} | nb val samples: {val_samples.shape[0]}"
         )
 
         X_val = jnp.take(X, val_samples, axis=0)
