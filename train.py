@@ -12,18 +12,18 @@ from typing import Callable, Tuple, List
 
 
 def accuracy(ys, logits):
-    return np.mean((logits > 0) == ys)
+    return jnp.mean((logits > 0) == ys)
 
 
 def cross_entropy(ys, logits):
     log_p = jax.nn.log_sigmoid(logits)
     log_not_p = jax.nn.log_sigmoid(-logits)
-    return np.mean(-ys * log_p - (1 - ys) * log_not_p)
+    return jnp.mean(-ys * log_p - (1 - ys) * log_not_p)
 
 
 def balance(ys):
-    one_indices = np.array(np.nonzero(ys))[0, :]
-    zero_indices = np.array(np.nonzero(ys == 0))[0, :]
+    one_indices = jnp.array(jnp.nonzero(ys))[0, :]
+    zero_indices = jnp.array(jnp.nonzero(ys == 0))[0, :]
 
     one_count = int(one_indices.shape[0])
     zero_count = int(zero_indices.shape[0])
@@ -33,7 +33,7 @@ def balance(ys):
     else:
         zero_indices = zero_indices[:one_count]
 
-    indices = np.append(one_indices, zero_indices)
+    indices = jnp.append(one_indices, zero_indices)
 
     # shuffel the indices
     key = random.PRNGKey(0)
@@ -77,7 +77,7 @@ def cv_splits(
     # TODO implement the balance_classes option
 
     dataset_lenght = Y.shape[0]
-    indices = np.array(range(dataset_lenght), dtype="int32")
+    indices = jnp.array(range(dataset_lenght), dtype="int32")
     key = random.PRNGKey(1701)
     key, subkey = jax.random.split(key)
     indices = random.permutation(subkey, indices)
@@ -87,7 +87,7 @@ def cv_splits(
     else:
         samples_per_fold = dataset_lenght // nb_folds + 1
 
-    out = np.zeros(nb_folds * samples_per_fold)
+    out = jnp.array(jnp.zeros(nb_folds * samples_per_fold), dtype="int32")
     out = out.at[:dataset_lenght].set(indices)
 
     if fill_last_fold:
@@ -97,7 +97,7 @@ def cv_splits(
         )
         out = out.at[dataset_lenght:].set(fill_indices)
 
-    out = np.reshape(out, (nb_folds, samples_per_fold))
+    out = jnp.reshape(out, (nb_folds, samples_per_fold))
     return out
 
 
