@@ -124,6 +124,7 @@ def cross_validate(
     val_acc_cv_runs = list()
 
     for cv_hold_out_fold_idx in range(cv_folds):
+        print(f"Start CV fold: {cv_hold_out_fold_idx}")
 
         all_folds = range(cv_folds)
         val_samples = cv_folds_idxs[[cv_hold_out_fold_idx], :]
@@ -213,5 +214,10 @@ def train_loop(
         val_losses += [loss(Y_val, Y_hat_val)]
         train_acc += [accuracy(Y_train, Y_hat_train)]
         val_acc += [accuracy(Y_val, Y_hat_val)]
+
+        if epoch % 10 == 0:
+            print(
+                f"\t train loss: {train_losses[-1]} | val loss: {val_losses[-1]} | train acc: {train_acc[-1]} | val acc: {val_acc[-1]}"
+            )
 
     return train_losses, val_losses, train_acc, val_acc
