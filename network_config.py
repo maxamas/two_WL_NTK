@@ -23,7 +23,7 @@ def get_network_configuration(dataset, method, configuration):
     of the network or dg for gradient descent initalization.
     """
 
-    if dataset == "MUTAG" and method == "twl" and configuration == "gd":
+    if dataset == "MUTAG" and method == "twl" and configuration == "Gradient_Descent":
 
         parameterization = "standard"
         n_nodes = 28
