@@ -231,7 +231,14 @@ def train_loop(
 
 
 def save_GD_raw_results(
-    dataset, training_method, epochs, utc_time, repo_path, cv_folds, training_results
+    dataset,
+    training_method,
+    nn_type,
+    epochs,
+    utc_time,
+    repo_path,
+    cv_folds,
+    training_results,
 ):
     # prepare results and save them
     train_losses_cv_runs_array = np.array([np.array(i) for i in training_results[0]])
@@ -240,7 +247,7 @@ def save_GD_raw_results(
     val_acc_cv_runs_array = np.array([np.array(i) for i in training_results[3]])
 
     # save the raw data
-    results_path = repo_path + f"/Results/{dataset}/{training_method}"
+    results_path = repo_path + f"/Results/{dataset}/{training_method}/{nn_type}"
     if not os.path.exists(results_path):
         os.makedirs(results_path)
 
@@ -265,7 +272,13 @@ def save_GD_raw_results(
 
 
 def save_core_results(
-    val_acc_cv_runs_array, utc_time, dataset, training_method, cv_folds, repo_path
+    val_acc_cv_runs_array,
+    utc_time,
+    dataset,
+    training_method,
+    nn_type,
+    cv_folds,
+    repo_path,
 ):
     # use for each cv run the epoch with the highest validation acc
     max_acc_for_cv_folds = np.amax(val_acc_cv_runs_array, 1)
@@ -291,6 +304,7 @@ def save_core_results(
                 utc_time,
                 dataset,
                 training_method,
+                nn_type,
                 cv_folds,
                 "accuracy",
                 mean,
@@ -306,7 +320,8 @@ def save_core_results(
             "UTC Time",
             "Dataset",
             "Training Method",
-            " Nb CV folds",
+            "NN Type",
+            "Nb CV folds",
             "Metric",
             "mean",
             "std",
@@ -318,5 +333,8 @@ def save_core_results(
         ],
     )
 
-    result_table = pd.read_csv(result_csv_path)
-    result_table.append(result_table_append).to_csv(result_csv_path, index=False)
+    if not os.path.exists(result_csv_path):
+        result_table_append.to_csv(result_csv_path, index=False)
+    else:
+        result_table = pd.read_csv(result_csv_path)
+        result_table.append(result_table_append).to_csv(result_csv_path, index=False)

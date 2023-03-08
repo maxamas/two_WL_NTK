@@ -42,6 +42,27 @@ def get_network_configuration(dataset, method, configuration):
 
         return init_fn, apply_fn, kernel_fn
 
+    elif dataset == "MUTAG" and method == "gcn" and configuration == "Gradient_Descent":
+
+        layer_wide = 16
+        # define a grap convolution network
+        init_fn, apply_fn, kernel_fn = stax.serial(
+            stax.Aggregate(
+                aggregate_axis=1, batch_axis=0, channel_axis=3, implementation="SPARSE"
+            ),
+            stax.Conv(layer_wide, (1, 1), parameterization="standard"),
+            stax.Relu(),
+            stax.Aggregate(
+                aggregate_axis=1, batch_axis=0, channel_axis=3, implementation="SPARSE"
+            ),
+            stax.Conv(layer_wide, (1, 1), parameterization="standard"),
+            stax.Relu(),
+            stax.GlobalSumPool(),
+            stax.Dense(1),
+        )
+
+        return init_fn, apply_fn, kernel_fn
+
     else:
         raise Exception(
             f"get_network_configuration has no case for dataset: {dataset} method: {method}"
