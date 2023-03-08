@@ -1,3 +1,6 @@
+import os
+
+import pandas as pd
 from utils import *
 import neural_tangents as nt
 from neural_tangents import stax
@@ -224,3 +227,95 @@ def train_loop(
             )
 
     return train_losses, val_losses, train_acc, val_acc
+
+
+def save_GD_raw_results(
+    dataset, training_method, epochs, utc_time, repo_path, cv_folds, training_results
+):
+    # prepare results and save them
+    train_losses_cv_runs_array = np.array([np.array(i) for i in training_results[0]])
+    val_losses_cv_runs_array = np.array([np.array(i) for i in training_results[1]])
+    train_acc_cv_runs_array = np.array([np.array(i) for i in training_results[2]])
+    val_acc_cv_runs_array = np.array([np.array(i) for i in training_results[3]])
+
+    # save the raw data
+    results_path = repo_path + f"/Results/{dataset}/{training_method}"
+    if not os.path.exists(results_path):
+        os.makedirs(results_path)
+
+    np.save(
+        results_path
+        + f"/{utc_time}_train_losses_CV_folds_{cv_folds}_epochs_{epochs}.npy",
+        train_losses_cv_runs_array,
+    )
+    np.save(
+        results_path
+        + f"/{utc_time}_val_losses_CV_folds_{cv_folds}_epochs_{epochs}.npy",
+        val_losses_cv_runs_array,
+    )
+    np.save(
+        results_path + f"/{utc_time}_train_acc_CV_folds_{cv_folds}_epochs_{epochs}.npy",
+        train_acc_cv_runs_array,
+    )
+    np.save(
+        results_path + f"/{utc_time}_val_acc_CV_folds_{cv_folds}_epochs_{epochs}.npy",
+        val_acc_cv_runs_array,
+    )
+
+
+def save_core_results(
+    val_acc_cv_runs_array, utc_time, dataset, training_method, cv_folds, repo_path
+):
+    # use for each cv run the epoch with the highest validation acc
+    max_acc_for_cv_folds = np.amax(val_acc_cv_runs_array, 1)
+    mean = np.mean(max_acc_for_cv_folds)
+    std = np.std(max_acc_for_cv_folds)
+    min, q_25, q_50, q_75, max = tuple(
+        np.quantile(max_acc_for_cv_folds, [0, 0.25, 0.5, 0.75, 1.0])
+    )
+
+    print("mean:", mean)
+    print("std:", std)
+    print("min:", min)
+    print("q_25:", q_25)
+    print("q_50:", q_50)
+    print("q_75:", q_75)
+    print("max:", max)
+
+    # append the reults of the run to the results csv
+    result_csv_path = repo_path + "/Results/results.csv"
+    result_table_append = pd.DataFrame(
+        [
+            [
+                utc_time,
+                dataset,
+                training_method,
+                cv_folds,
+                "accuracy",
+                mean,
+                std,
+                min,
+                q_25,
+                q_50,
+                q_75,
+                max,
+            ]
+        ],
+        columns=[
+            "UTC Time",
+            "Dataset",
+            "Training Method",
+            " Nb CV folds",
+            "Metric",
+            "mean",
+            "std",
+            "min",
+            "q_25",
+            "q_50",
+            "q_75",
+            "max",
+        ],
+    )
+
+    result_table = pd.read_csv(result_csv_path)
+    result_table.append(result_table_append).to_csv(result_csv_path, index=False)
