@@ -8,7 +8,7 @@ from jax import jit, grad, vmap
 from jax.example_libraries import optimizers
 from jax.nn import log_softmax
 from jax._src.typing import Array, Shape
-from typing import Callable
+from typing import Callable, Tuple, List
 
 
 def accuracy(ys, logits):
@@ -45,7 +45,7 @@ def balance(ys):
 
 def val_test_split_pattern_array(
     pattern: Array, train_samples: Array, val_samples: Array, method: str
-) -> tuple[Array, Array]:
+) -> Tuple[Array, Array]:
     """
     Helper function, because the 2WL pattern and the GCN pattern
     are indexed in a different way. The GCN pattern has batches,
@@ -164,7 +164,7 @@ def cross_validate(
         train_acc_cv_runs.append(train_acc)
         val_acc_cv_runs.append(val_acc)
 
-    return X_train, Y_train, pattern_train, X_val, Y_val, pattern_val
+    return train_losses_cv_runs, val_losses_cv_runs, train_acc_cv_runs, val_acc_cv_runs
 
 
 def train_loop(
@@ -180,7 +180,7 @@ def train_loop(
     epochs: int,
     loss: Callable,
     grad_loss: Callable,
-) -> tuple[list[float], list[float], list[float], list[float]]:
+) -> Tuple[List[float], List[float], List[float], List[float]]:
 
     key = random.PRNGKey(1701)
     key, subkey = jax.random.split(key)
