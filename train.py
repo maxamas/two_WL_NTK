@@ -57,7 +57,7 @@ def val_test_split_pattern_array(
     """
     if method in ["gcn", "GCN"]:
         pattern_val = jnp.take(pattern, val_samples, axis=0)
-        pattern_train = jnp.take(pattern, val_samples, axis=0)
+        pattern_train = jnp.take(pattern, train_samples, axis=0)
 
         return pattern_train, pattern_val
 
