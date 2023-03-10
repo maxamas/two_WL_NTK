@@ -46,17 +46,12 @@ def two_wl_aggregation(n_nodes):
 
         num_segments = inputs.shape[0] * inputs.shape[1] * inputs.shape[2]
 
-        # edges from v_i to v_j
-        # pattern := [A,B,C,D]
-        # A = batch, B = node i, C = node j
-        # linear_index([A,B,C]) => if we have a batched adjacency matrix
-        # what is the index of nodes B, C in batch A, if we index the
-        # array 3 dimensional array linear (c-style)
-        e_ij = linear_index(pattern[:, [0, 1, 2]], (inputs.shape[0], n_nodes, n_nodes))
         # edges from v_i to v_l
-        e_il = linear_index(pattern[:, [0, 1, 3]], (inputs.shape[0], n_nodes, n_nodes))
+        e_ij = pattern[:, 0]
+        # edges from v_i to v_l
+        e_il = pattern[:, 1]
         # edges from v_l to v_j
-        e_lj = linear_index(pattern[:, [0, 3, 2]], (inputs.shape[0], n_nodes, n_nodes))
+        e_lj = pattern[:, 2]
 
         graphs_edge_features = np.reshape(inputs, (-1, inputs.shape[3]))
         x_gamma_1 = np.take(graphs_edge_features, e_il, axis=0)
@@ -94,41 +89,27 @@ def two_wl_aggregation(n_nodes):
         # b_A, b_B, i_A, i_B, j_A, j_B, a_A, a_B
         #   0,   1,   2,   3,   4,   5,   6,   7
         patterns = row_wise_karthesian_prod(pattern[0], pattern[1])
-        patterns = patterns[:, [0, 4, 1, 5, 2, 6, 3, 7]]
-        # "Interpretation" of the kartesian product:
-        # A row from the pattern array [A,B,C,D] tells us,
-        # that node D is a neighboor of nodes B and C in batch A.
-        # Lets consider only the rows, where columns A,B,C are equal (node e_ij)
-        # column D is then the "set" of nodes the "neigborhood" aggregation
-        # sum for e_ij sums.
-        # Also, consider the pathern from the other graph with
-        # columns [Ab,Bb,Cb,Db]. When take only the rows where
-        # columns Ab, Bb, Cb are equal. Column Db makes then the
-        # indexes to sum over for the "neigborhood" aggregation.
-        # To create the double sum we need the
-        # karthesian product of the indexes in column D and
-        # column Db.
 
-        # note: ib <=> i bar
-        e_i_j_ib_jb = linear_index(
-            patterns[:, [0, 1, 2, 4, 3, 5]],
-            (k.ntk.shape[0], k.ntk.shape[1], n_nodes, n_nodes, n_nodes, n_nodes),
+        # the colmns of patterns are the indices for edges i_j i_a a_j ib_jb ib_ab ab_jb
+        #                                                    0   1   2     3     4     5
+
+        nb_edges_graph_a = np.unique(patterns[:, 0]).shape[0]
+        nb_edges_graph_b = np.unique(patterns[:, 3]).shape[0]
+
+        e_i_j_ib_jb = np.ravel_multi_index(
+            [patterns[:, 0], patterns[:, 3]], (nb_edges_graph_a, nb_edges_graph_b)
         )
-        e_i_a_ib_ab = linear_index(
-            patterns[:, [0, 1, 2, 6, 3, 7]],
-            (k.ntk.shape[0], k.ntk.shape[1], n_nodes, n_nodes, n_nodes, n_nodes),
+        e_i_a_ib_ab = np.ravel_multi_index(
+            [patterns[:, 1], patterns[:, 4]], (nb_edges_graph_a, nb_edges_graph_b)
         )
-        e_i_a_ab_jb = linear_index(
-            patterns[:, [0, 1, 2, 6, 7, 5]],
-            (k.ntk.shape[0], k.ntk.shape[1], n_nodes, n_nodes, n_nodes, n_nodes),
+        e_i_a_ab_jb = np.ravel_multi_index(
+            [patterns[:, 1], patterns[:, 5]], (nb_edges_graph_a, nb_edges_graph_b)
         )
-        e_a_j_ib_ab = linear_index(
-            patterns[:, [0, 1, 6, 4, 3, 7]],
-            (k.ntk.shape[0], k.ntk.shape[1], n_nodes, n_nodes, n_nodes, n_nodes),
+        e_a_j_ib_ab = np.ravel_multi_index(
+            [patterns[:, 2], patterns[:, 4]], (nb_edges_graph_a, nb_edges_graph_b)
         )
-        e_a_j_ab_jb = linear_index(
-            patterns[:, [0, 1, 6, 4, 7, 5]],
-            (k.ntk.shape[0], k.ntk.shape[1], n_nodes, n_nodes, n_nodes, n_nodes),
+        e_a_j_ab_jb = np.ravel_multi_index(
+            [patterns[:, 2], patterns[:, 5]], (nb_edges_graph_a, nb_edges_graph_b)
         )
 
         theta_i_a_ib_ab = jax.ops.segment_sum(
