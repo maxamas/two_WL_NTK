@@ -12,6 +12,7 @@ from neural_tangents._src.stax.requirements import (
 from jax import numpy as np
 import jax
 from utils import row_wise_karthesian_prod
+from neural_tangents import stax
 
 # pattern is a two dimensional array of shape k x 4
 # a edge list from the 4 dimensional intersected adjacency matrix
