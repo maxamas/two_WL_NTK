@@ -100,11 +100,11 @@ def check_if_output_allready_exists(type: str, dataset_path: str) -> bool:
         return not all_not_exist
 
     files_TWL = [
-        "/two_wl_edge_features.npy",
-        "/two_wl_patterns.npy",
-        "/two_wl_ys.npy",
-        "/two_wl_nb_edges.npy",
-        "/two_wl_patterns_graph_map.npy",
+        "/two_wl_edge_features.jnpy",
+        "/two_wl_patterns.jnpy",
+        "/two_wl_ys.jnpy",
+        "/two_wl_nb_edges.jnpy",
+        "/two_wl_patterns_graph_map.jnpy",
     ]
 
     files_GCN = [
@@ -155,8 +155,8 @@ def prepare_tu_data_for_2WL(
                 print(f"Working on sample {i} to {i + 10} of {len(dataset)} samples.")
 
             # calculate the edge_list and pattern array for each graph in the dataset
-            edge_list = np.transpose(np.array(data.edge_index))
-            node_features = np.array(data.x)
+            edge_list = jnp.transpose(jnp.array(data.edge_index))
+            node_features = jnp.array(data.x)
             nb_nodes = len(node_features)
             pattern, edge_list = twl_sparse_pattern(edge_list, nb_nodes)
             edge_features = twl_sparse_edge_features(
@@ -165,7 +165,7 @@ def prepare_tu_data_for_2WL(
 
             dataset_edge_features.append(edge_features)
             dataset_patterns.append(pattern)
-            dataset_ys.append(np.array(data.y))
+            dataset_ys.append(jnp.array(data.y))
             dataset_nb_edges.append(edge_list.shape[0])
             patterns_graph_map.append(pattern.shape[0] + prev_pattern_graph_map)
             prev_pattern_graph_map = patterns_graph_map[-1]
@@ -177,22 +177,22 @@ def prepare_tu_data_for_2WL(
         for current_nb_edges, current_pattern in zip(
             dataset_nb_edges[1:], dataset_patterns[1:]
         ):
-            pattern = np.append(pattern, current_pattern + nb_edges_cum, 0)
+            pattern = jnp.append(pattern, current_pattern + nb_edges_cum, 0)
             nb_edges_cum += current_nb_edges
 
         edge_features = dataset_edge_features[0]
         for current_edge_features in dataset_edge_features[1:]:
-            edge_features = np.append(edge_features, current_edge_features, 0)
+            edge_features = jnp.append(edge_features, current_edge_features, 0)
 
         if not os.path.exists(dataset_path):
             os.makedirs(dataset_path)
 
-        np.save(dataset_path + f"/two_wl_edge_features", edge_features)
-        np.save(dataset_path + f"/two_wl_patterns", pattern)
-        np.save(dataset_path + f"/two_wl_ys", np.array(dataset_ys))
-        np.save(dataset_path + f"/two_wl_nb_edges", np.array(dataset_nb_edges))
-        np.save(
-            dataset_path + f"/two_wl_patterns_graph_map", np.array(patterns_graph_map)
+        jnp.save(dataset_path + f"/two_wl_edge_features", edge_features)
+        jnp.save(dataset_path + f"/two_wl_patterns", pattern)
+        jnp.save(dataset_path + f"/two_wl_ys", jnp.array(dataset_ys))
+        jnp.save(dataset_path + f"/two_wl_nb_edges", jnp.array(dataset_nb_edges))
+        jnp.save(
+            dataset_path + f"/two_wl_patterns_graph_map", jnp.array(patterns_graph_map)
         )
 
 
@@ -224,13 +224,13 @@ def prepare_tu_data_for_GCN(
             if i % 10 == 0:
                 print(f"Working on sample {i} to {i + 10} of {len(dataset)} samples.")
 
-            edge_list = np.transpose(np.array(data.edge_index))
-            node_features = np.array(data.x)
+            edge_list = jnp.transpose(jnp.array(data.edge_index))
+            node_features = jnp.array(data.x)
             nb_nodes = len(node_features)
 
             dataset_node_features.append(node_features)
             dataset_patterns.append(edge_list)
-            dataset_ys.append(np.array(data.y))
+            dataset_ys.append(jnp.array(data.y))
             dataset_nb_nodes.append(nb_nodes)
             patterns_graph_map.append(node_features.shape[0] + prev_pattern_graph_map)
             prev_pattern_graph_map = patterns_graph_map[-1]
@@ -242,31 +242,31 @@ def prepare_tu_data_for_GCN(
         for current_nb_nodes, current_pattern in zip(
             dataset_nb_nodes[1:], dataset_patterns[1:]
         ):
-            pattern = np.append(pattern, current_pattern + nb_nodes_cum, 0)
+            pattern = jnp.append(pattern, current_pattern + nb_nodes_cum, 0)
             nb_nodes_cum += current_nb_nodes
 
         node_features = dataset_node_features[0]
         for current_node_features in dataset_node_features[1:]:
-            node_features = np.append(node_features, current_node_features, 0)
+            node_features = jnp.append(node_features, current_node_features, 0)
 
         # node feature
-        node_features = np.expand_dims(node_features, 0)
-        node_features = np.expand_dims(node_features, 2)
+        node_features = jnp.expand_dims(node_features, 0)
+        node_features = jnp.expand_dims(node_features, 2)
 
         # pattern
-        pattern = np.expand_dims(pattern, 0)
-        pattern = np.expand_dims(pattern, 2)
+        pattern = jnp.expand_dims(pattern, 0)
+        pattern = jnp.expand_dims(pattern, 2)
 
         if not os.path.exists(dataset_path):
             os.makedirs(dataset_path)
 
-        np.save(dataset_path + f"/gcn_sparse_node_features", node_features)
-        np.save(dataset_path + f"/gcn_sparse_patterns", pattern)
-        np.save(dataset_path + f"/gcn_sparse_ys", np.array(dataset_ys))
-        np.save(dataset_path + f"/gcn_sparse_nb_nodes", np.array(dataset_nb_nodes))
-        np.save(
+        jnp.save(dataset_path + f"/gcn_sparse_node_features", node_features)
+        jnp.save(dataset_path + f"/gcn_sparse_patterns", pattern)
+        jnp.save(dataset_path + f"/gcn_sparse_ys", jnp.array(dataset_ys))
+        jnp.save(dataset_path + f"/gcn_sparse_nb_nodes", jnp.array(dataset_nb_nodes))
+        jnp.save(
             dataset_path + f"/gcn_sparse_patterns_graph_map",
-            np.array(patterns_graph_map),
+            jnp.array(patterns_graph_map),
         )
 
 
