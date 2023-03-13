@@ -29,7 +29,7 @@ from utils import row_wise_karthesian_prod
 
 @layer
 @supports_masking(remask_kernel=False)
-def two_wl_aggregation(n_nodes):
+def two_wl_aggregation():
     """
     Return a layer, that implements the gatter
     and scatter operations given the reference Matrix
@@ -140,7 +140,7 @@ def two_wl_aggregation(n_nodes):
     return init_fn, apply_fn, kernel_fn
 
 
-def get_two_wl_aggregation_layer(parameterization, n_nodes, layer_wide):
+def get_two_wl_aggregation_layer(parameterization, layer_wide):
     """
     parameterization: "standard" or "ntk"
     n_nodes: the max number of nodes in all graphs

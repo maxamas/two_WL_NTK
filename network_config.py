@@ -15,55 +15,35 @@ import jax
 from neural_tangents import stax
 
 
-def get_network_configuration(dataset, method, configuration):
-    """
-    dataset: str
-    method: gcn or twl
-    configuration: ntk configuration (initalization)
-    of the network or dg for gradient descent initalization.
-    """
+def get_2wl_network_configuration(
+    layers, parameterization, layer_wide, output_layer_wide
+):
+    two_wl_aggregation_layer = get_two_wl_aggregation_layer(
+        parameterization, layer_wide
+    )
 
-    if dataset == "MUTAG" and method == "twl" and configuration == "Gradient_Descent":
+    layers = tuple(tuple(two_wl_aggregation_layer) for i in range(layers)) + (
+        tuple(stax.GlobalSumPool()),
+        tuple(stax.Dense(output_layer_wide)),
+    )
 
-        parameterization = "standard"
-        n_nodes = 28
-        layer_wide = 32
-        two_wl_aggregation_layer = get_two_wl_aggregation_layer(
-            parameterization, n_nodes, layer_wide
-        )
+    return stax.serial(*layers)  # init_fn, apply_fn, kernel_fn
 
-        init_fn, apply_fn, kernel_fn = stax.serial(
-            two_wl_aggregation_layer,
-            two_wl_aggregation_layer,
-            two_wl_aggregation_layer,
-            stax.GlobalSumPool(),
-            stax.Dense(1),
-        )
 
-        return init_fn, apply_fn, kernel_fn
+def get_gcn_network_configuration(
+    layers, parameterization, layer_wide, output_layer_wide
+):
+    gcn_layer = stax.serial(
+        stax.Conv(layer_wide, (1, 1), parameterization=parameterization),
+        stax.Relu(),
+        stax.Aggregate(
+            aggregate_axis=1, batch_axis=0, channel_axis=3, implementation="SPARSE"
+        ),
+    )
 
-    elif dataset == "MUTAG" and method == "gcn" and configuration == "Gradient_Descent":
+    layers = tuple(tuple(gcn_layer) for i in range(layers)) + (
+        tuple(stax.GlobalSumPool()),
+        tuple(stax.Dense(output_layer_wide)),
+    )
 
-        layer_wide = 16
-        # define a grap convolution network
-        init_fn, apply_fn, kernel_fn = stax.serial(
-            stax.Aggregate(
-                aggregate_axis=1, batch_axis=0, channel_axis=3, implementation="SPARSE"
-            ),
-            stax.Conv(layer_wide, (1, 1), parameterization="standard"),
-            stax.Relu(),
-            stax.Aggregate(
-                aggregate_axis=1, batch_axis=0, channel_axis=3, implementation="SPARSE"
-            ),
-            stax.Conv(layer_wide, (1, 1), parameterization="standard"),
-            stax.Relu(),
-            stax.GlobalSumPool(),
-            stax.Dense(1),
-        )
-
-        return init_fn, apply_fn, kernel_fn
-
-    else:
-        raise Exception(
-            f"get_network_configuration has no case for dataset: {dataset} method: {method}"
-        )
+    return stax.serial(*layers)  # init_fn, apply_fn, kernel_fn
