@@ -277,17 +277,16 @@ def prepare_tu_data_for_GCN(
 
 
 if __name__ == "__main__":
-    # tu_datasets = [
-    #     "MUTAG",
-    #     "PROTEINS",
-    #     "PTC",
-    #     "NCI1",
-    #     "COLLAB",
-    #     "IMDB-BINARY",
-    #     "IMDB-MULTI",
-    # ]
+    tu_datasets = [
+        "MUTAG",
+        "PROTEINS",
+        "PTC",
+        "NCI1",
+        "COLLAB",
+        "IMDB-BINARY",
+        "IMDB-MULTI",
+    ]
 
-    tu_datasets = ["MUTAG"]
     base_path_preprocessed = f"./Data/Preprocessed"
     base_path_tu_datasets = f"./Data/TUData"
 
