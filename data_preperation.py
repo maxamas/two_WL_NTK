@@ -185,7 +185,10 @@ def prepare_tu_data_for_2WL(
             edge_features = jnp.append(edge_features, current_edge_features, 0)
 
         if not os.path.exists(dataset_path):
+            print(f"Creating directory: {dataset_path}")
             os.makedirs(dataset_path)
+
+        print(f"Saving output files at: {dataset_path}")
 
         jnp.save(dataset_path + f"/two_wl_edge_features", edge_features)
         jnp.save(dataset_path + f"/two_wl_patterns", pattern)
@@ -259,8 +262,10 @@ def prepare_tu_data_for_GCN(
         pattern = jnp.expand_dims(pattern, 2)
 
         if not os.path.exists(dataset_path):
+            print(f"Creating directory: {dataset_path}")
             os.makedirs(dataset_path)
 
+        print(f"Saving output files at: {dataset_path}")
         jnp.save(dataset_path + f"/gcn_sparse_node_features", node_features)
         jnp.save(dataset_path + f"/gcn_sparse_patterns", pattern)
         jnp.save(dataset_path + f"/gcn_sparse_ys", jnp.array(dataset_ys))
