@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#SBATCH -p Al
+#SBATCH -p All
 #SBATCH -c 1 # number of cores
 pip install jax
 pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
