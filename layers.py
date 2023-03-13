@@ -153,7 +153,7 @@ def get_two_wl_aggregation_layer(parameterization, layer_wide):
 
     Gamma_branche = stax.serial(
         stax.Conv(layer_wide, (1, 1), parameterization=parameterization),
-        two_wl_aggregation(n_nodes),
+        two_wl_aggregation(),
     )
 
     two_wl_aggregation_layer = stax.serial(
