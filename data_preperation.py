@@ -213,6 +213,7 @@ def prepare_tu_data_for_GCN(
             dataset = TUDataset(root=base_path_tu_datasets, name=dataset_name)
         except Exception as e:
             print(f"Can not download datset. Error {e}")
+            continue
 
         dataset_node_features = list()
         dataset_patterns = list()
@@ -271,7 +272,17 @@ def prepare_tu_data_for_GCN(
 
 
 if __name__ == "__main__":
-    tu_datasets = ["MUTAG", "PROTEINS", "PTC", "NCI1", "COLLAB", "IMDB-BINARY", "IMDB-MULTI"]
+    # tu_datasets = [
+    #     "MUTAG",
+    #     "PROTEINS",
+    #     "PTC",
+    #     "NCI1",
+    #     "COLLAB",
+    #     "IMDB-BINARY",
+    #     "IMDB-MULTI",
+    # ]
+
+    tu_datasets = ["MUTAG"]
     base_path_preprocessed = f"~/masterarbeit/MasterarbeitData/Preprocessed"
     base_path_tu_datasets = f"~/masterarbeit/MasterarbeitData/TUData"
 
