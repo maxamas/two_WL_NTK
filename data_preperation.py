@@ -201,7 +201,7 @@ def prepare_tu_data_for_GCN(
 ):
 
     for dataset_name in tu_datasets:
-        
+
         print(f"Preparing {dataset_name} dataset:")
         if check_if_output_allready_exists("GCN", dataset_path):
             print(
@@ -213,7 +213,6 @@ def prepare_tu_data_for_GCN(
         except Exception as e:
             print(f"Can not download datset. Error {e}")
         dataset_path = base_path + f"/{dataset_name}"
-
 
         dataset_node_features = list()
         dataset_patterns = list()
@@ -270,6 +269,7 @@ def prepare_tu_data_for_GCN(
             np.array(patterns_graph_map),
         )
 
+
 if __name__ == "__main__":
     # tu_datasets = ["PROTEINS", "MUTAG", "PTC", "NCI1", "COLLAB", "IMDB-BINARY", "IMDB-MULTI"]
     tu_datasets = ["MUTAG"]
@@ -277,7 +277,7 @@ if __name__ == "__main__":
     base_path_tu_datasets = f"~/projects/MArbeit/MasterarbeitData/TUData"
 
     # prepare tudatasets for 2WL
-    prepare_tu_data_for_2WL(tu_datasets, base_path, base_path_tu_datasets)
+    prepare_tu_data_for_2WL(tu_datasets, base_path_preprocessed, base_path_tu_datasets)
 
     # prepare tu datasets for sparse gcn
-    prepare_tu_data_for_GCN(tu_datasets, base_path, base_path_tu_datasets)
+    prepare_tu_data_for_GCN(tu_datasets, base_path_preprocessed, base_path_tu_datasets)
