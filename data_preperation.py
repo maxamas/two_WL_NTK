@@ -288,8 +288,8 @@ if __name__ == "__main__":
     # ]
 
     tu_datasets = ["MUTAG"]
-    base_path_preprocessed = f"~/masterarbeit/MasterarbeitData/Preprocessed"
-    base_path_tu_datasets = f"~/masterarbeit/MasterarbeitData/TUData"
+    base_path_preprocessed = f"./Data/Preprocessed"
+    base_path_tu_datasets = f"./Data/TUData"
 
     # prepare tudatasets for 2WL
     prepare_tu_data_for_2WL(tu_datasets, base_path_preprocessed, base_path_tu_datasets)
