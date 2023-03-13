@@ -100,19 +100,19 @@ def check_if_output_allready_exists(type: str, dataset_path: str) -> bool:
         return not all_not_exist
 
     files_TWL = [
-        "/two_wl_edge_features.jnpy",
-        "/two_wl_patterns.jnpy",
-        "/two_wl_ys.jnpy",
-        "/two_wl_nb_edges.jnpy",
-        "/two_wl_patterns_graph_map.jnpy",
+        "/two_wl_edge_features.npy",
+        "/two_wl_patterns.npy",
+        "/two_wl_ys.npy",
+        "/two_wl_nb_edges.npy",
+        "/two_wl_patterns_graph_map.npy",
     ]
 
     files_GCN = [
-        "/gcn_sparse_node_features",
-        "/gcn_sparse_patterns",
-        "/gcn_sparse_ys",
-        "/gcn_sparse_nb_nodes",
-        "/gcn_sparse_patterns_graph_map",
+        "/gcn_sparse_node_features.npy",
+        "/gcn_sparse_patterns.npy",
+        "/gcn_sparse_ys.npy",
+        "/gcn_sparse_nb_nodes.npy",
+        "/gcn_sparse_patterns_graph_map.npy",
     ]
 
     if type == "TWL":
