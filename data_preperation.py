@@ -139,7 +139,10 @@ def prepare_tu_data_for_2WL(
             )
             continue
 
-        dataset = TUDataset(root=base_path_tu_datasets, name=dataset_name)
+        try:
+            dataset = TUDataset(root=base_path_tu_datasets, name=dataset_name)
+        except Exception as e:
+            print(f"Can not download datset. Error {e}")
 
         dataset_edge_features = list()
         dataset_patterns = list()
@@ -198,14 +201,19 @@ def prepare_tu_data_for_GCN(
 ):
 
     for dataset_name in tu_datasets:
-
-        dataset = TUDataset(root=base_path_tu_datasets, name=dataset_name)
-        dataset_path = base_path + f"/{dataset_name}"
+        
+        print(f"Preparing {dataset_name} dataset:")
         if check_if_output_allready_exists("GCN", dataset_path):
             print(
                 f"All expected output files already exist at {dataset_path}. If you want to preproces again delete the files at that location. Skip the Dataset for now."
             )
             continue
+        try:
+            dataset = TUDataset(root=base_path_tu_datasets, name=dataset_name)
+        except Exception as e:
+            print(f"Can not download datset. Error {e}")
+        dataset_path = base_path + f"/{dataset_name}"
+
 
         dataset_node_features = list()
         dataset_patterns = list()
@@ -261,3 +269,15 @@ def prepare_tu_data_for_GCN(
             dataset_path + f"/gcn_sparse_patterns_graph_map",
             np.array(patterns_graph_map),
         )
+
+if __name__ == "__main__":
+    # tu_datasets = ["PROTEINS", "MUTAG", "PTC", "NCI1", "COLLAB", "IMDB-BINARY", "IMDB-MULTI"]
+    tu_datasets = ["MUTAG"]
+    base_path_preprocessed = f"~/projects/MArbeit/MasterarbeitData/Preprocessed"
+    base_path_tu_datasets = f"~/projects/MArbeit/MasterarbeitData/TUData"
+
+    # prepare tudatasets for 2WL
+    prepare_tu_data_for_2WL(tu_datasets, base_path, base_path_tu_datasets)
+
+    # prepare tu datasets for sparse gcn
+    prepare_tu_data_for_GCN(tu_datasets, base_path, base_path_tu_datasets)
