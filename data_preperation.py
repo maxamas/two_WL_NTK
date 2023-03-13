@@ -1,5 +1,5 @@
 import os
-from utils import *
+from utils import row_wise_karthesian_prod
 from torch_geometric.datasets import TUDataset
 from jax import numpy as jnp
 from jax._src.typing import Array

@@ -1,30 +1,4 @@
-import neural_tangents as nt
-from neural_tangents import stax
-from jax import numpy as np
-import jax
-
-
-def neigbourhood_intersections(A):
-    """
-    Interpretation of out:
-    out[a,b,c,d] == 1 if we intersect the nodes
-    c and d from batch a, can we reach node b?
-    batch x depth x height x wide
-    """
-    # broadcasting like this:
-    # A_full_1 = np.full((A.shape[0], A.shape[1], A.shape[2], A.shape[2]), A)
-    # does not work if dim 0 is > 1. Thus loop over the batch dimension
-
-    A_full_1 = np.full((A.shape[1], A.shape[2], A.shape[2]), A[0, :])
-    A_full_1 = np.expand_dims(A_full_1, 0)
-    for i in range(1, A.shape[0]):
-        A_full_1_tmp = np.full((A.shape[1], A.shape[2], A.shape[2]), A[i, :])
-        A_full_1_tmp = np.expand_dims(A_full_1_tmp, 0)
-        A_full_1 = np.append(A_full_1, A_full_1_tmp, 0)
-    # flip stacked A such that the height x wide slices become the depth x wide slices
-    A_full_2 = np.swapaxes(A_full_1, 1, 2)
-    out = np.array(np.logical_and(A_full_1, A_full_2), dtype="int32")
-    return out
+from jax import numpy as jnp
 
 
 def row_wise_karthesian_prod(a, b):
@@ -35,8 +9,8 @@ def row_wise_karthesian_prod(a, b):
     b: b_n x b_m
     returns 2 dim array a_n*b_n x a_m + b_m
     example:
-    >a = np.array([[1,1,1], [2,2,2]])
-    >b = np.array([[1,1,1], [2,2,2], [3,3,3]])*10
+    >a = jnp.array([[1,1,1], [2,2,2]])
+    >b = jnp.array([[1,1,1], [2,2,2], [3,3,3]])*10
     >row_wise_karthesian_prod(a, b)
     > Array([[[ 1,  1,  1, 10, 10, 10],
         [ 2,  2,  2, 10, 10, 10]],
@@ -47,125 +21,10 @@ def row_wise_karthesian_prod(a, b):
        [[ 1,  1,  1, 30, 30, 30],
         [ 2,  2,  2, 30, 30, 30]]], dtype=int32)
     """
-    a_2 = np.full((b.shape[0], a.shape[0], a.shape[1]), a)
-    b_2 = np.full((a.shape[0], b.shape[0], b.shape[1]), b)
-    b_3 = np.swapaxes(b_2, 0, 1)
-    a_2 = np.reshape(a_2, (-1, a.shape[1]))
-    b_3 = np.reshape(b_3, (-1, b.shape[1]))
-    out = np.append(a_2, b_3, axis=1)
-    return out
-
-
-def linear_index(A, ns):
-    """
-    calculate the edge index of
-    an array given by an edge list.
-    layed out linearaly.
-    A: A edge list of shape [-1, k]
-    ns: A list of lenght k giving the size of each dimension
-    """
-    # TODO: use ravel_multi_index
-    # pattern_1 = pattern[:,[0]]
-    # pattern_2 = pattern[:,[1]]
-    # pattern_3 = pattern[:,[2]]
-
-    # pattern = p1
-    # n_nodes=28
-    # inputs = x1
-    # e_ij = linear_index(pattern[:,[0,1,2]], (inputs.shape[0], n_nodes, n_nodes))
-    # e_ij_2 = np.ravel_multi_index([pattern_1, pattern_2, pattern_3], (inputs.shape[0], n_nodes, n_nodes))
-    # e_ij_2 = np.squeeze(e_ij_2)
-
-    # print(e_ij == e_ij_2)
-
-    ns = list(ns)
-    ns = ns[1:] + [1]
-    out = np.zeros(A.shape[0])
-    for i, n in enumerate(ns):
-        out += A[:, i] * np.product(np.array(ns[i:]))
-    return np.array(out, dtype="int32")
-
-
-def to_dense(node_list, size):
-    """
-    Naive implementation, to get a
-    adjacency matrix from a node list.
-    Node list 2xn -> adjacency matrix nxn
-    """
-    A = np.zeros((size, size))
-    node_list = node_list.tolist()
-    for i, j in zip(node_list[0], node_list[1]):
-        A = A.at[i, j].set(1)
-    return A
-
-
-def r_power_adjacency_matrix(A, r):
-    """
-    Calculate the r-power for adjacency matrix A.
-    From a 3d tensor with batch dimension
-    """
-    if r == 1:
-        return A
-    last_As = A
-    for i in range(r - 1):
-        next_As = np.matmul(last_As, A)
-        next_As = next_As + last_As
-        next_As = next_As.at[next_As != 0].set(1)
-        last_As = next_As
-
-    return next_As
-
-
-def zero_append(a, shape):
-    """
-    Add zero columns and rows to the array
-    a, to make it of shape size x size.
-    """
-    if len(shape) == 2:
-        out = np.zeros((shape[0], shape[1]))
-        out = out.at[: a.shape[0], : a.shape[1]].set(a)
-    elif len(shape) == 3:
-        out = np.zeros((shape[0], shape[1], shape[2]))
-        out = out.at[: a.shape[0], : a.shape[1], : a.shape[2]].set(a)
-    else:
-        raise Exception(
-            f"zero_append is not implemented for shape of lenght shape {len(shape)}"
-        )
-    return out
-
-
-def column_in_values(column: np.array, values: np.array):
-    column = np.expand_dims(column, 1)
-    column = np.full((column.shape[0], values.shape[0]), column)
-    values = np.full((column.shape[0], values.shape[0]), values)
-    return np.any(np.array(column == values, dtype="int32"), 1)
-
-
-def expand_pattern_at_channels_dim(pattern_in, nr_channels, batched=True):
-    """
-    Expand a (batched) two dimensional pattern
-    into a three dimensional pattern. The size of the added
-    dimension is determined by nr_channels.
-    The channe
-    """
-
-    if batched:
-        out = np.zeros(
-            (
-                pattern_in.shape[0],
-                pattern_in.shape[1],
-                nr_channels,
-                pattern_in.shape[1],
-                nr_channels,
-            )
-        )
-        for k in range(pattern_in.shape[0]):
-            for i in range(nr_channels):
-                out = out.at[k, :, i, :, i].set(pattern_in[k, :])
-    else:
-        out = np.zeros(
-            (pattern_in.shape[1], nr_channels, pattern_in.shape[1], nr_channels)
-        )
-        for i in range(nr_channels):
-            out = out.at[:, i, :, i].set(pattern_in)
+    a_2 = jnp.full((b.shape[0], a.shape[0], a.shape[1]), a)
+    b_2 = jnp.full((a.shape[0], b.shape[0], b.shape[1]), b)
+    b_3 = jnp.swapaxes(b_2, 0, 1)
+    a_2 = jnp.reshape(a_2, (-1, a.shape[1]))
+    b_3 = jnp.reshape(b_3, (-1, b.shape[1]))
+    out = jnp.append(a_2, b_3, axis=1)
     return out
