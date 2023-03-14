@@ -282,7 +282,7 @@ if __name__ == "__main__":
         "PROTEINS",
         "PTC",
         "NCI1",
-        "COLLAB",
+        "COLORS-3",  # "COLLAB", is to big
         "IMDB-BINARY",
         "IMDB-MULTI",
     ]
