@@ -37,7 +37,7 @@ def get_gcn_network_configuration(
         stax.Conv(layer_wide, (1, 1), parameterization=parameterization),
         stax.Relu(),
         stax.Aggregate(
-            aggregate_axis=1, batch_axis=0, channel_axis=3, implementation="SPARSE"
+            aggregate_axis=(1, 2), batch_axis=0, channel_axis=3, implementation="SPARSE"
         ),
     )
 
