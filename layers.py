@@ -71,10 +71,10 @@ def two_wl_aggregation():
         k: Kernel,
         *,
         pattern: Tuple[Optional[np.ndarray], Optional[np.ndarray]] = (None, None),
+        nb_edges: Tuple[Optional[int], Optional[int]] = (None, None),
+        nb_graphs: Tuple[Optional[int], Optional[int]] = (None, None),
         **kwargs
     ):
-
-        num_segments = int(np.prod(np.array(k.ntk.shape)))
 
         # arrange the incoming kernel matrix as a flatt array
         # ntk_linear = np.reshape(k.ntk, (-1, 1))
@@ -89,54 +89,111 @@ def two_wl_aggregation():
         # rearrange the columns to:
         # b_A, b_B, i_A, i_B, j_A, j_B, a_A, a_B
         #   0,   1,   2,   3,   4,   5,   6,   7
+        # the colmns of patterns are the indices for edges i_j i_a a_j ib_jb ib_ab ab_jb
+        #
+        #                                                     0   1   2     3     4     5
+        num_segments = nb_graphs[0] * nb_graphs[1]
         patterns = row_wise_karthesian_prod(pattern[0], pattern[1])
 
-        # the colmns of patterns are the indices for edges i_j i_a a_j ib_jb ib_ab ab_jb
-        #                                                    0   1   2     3     4     5
-
-        nb_edges_graph_a = np.unique(patterns[:, 0]).shape[0]
-        nb_edges_graph_b = np.unique(patterns[:, 3]).shape[0]
-
         e_i_j_ib_jb = np.ravel_multi_index(
-            [patterns[:, 0], patterns[:, 3]], (nb_edges_graph_a, nb_edges_graph_b)
+            [patterns[:, 0], patterns[:, 3]], (nb_edges[0], nb_edges[1])
         )
         e_i_a_ib_ab = np.ravel_multi_index(
-            [patterns[:, 1], patterns[:, 4]], (nb_edges_graph_a, nb_edges_graph_b)
+            [patterns[:, 1], patterns[:, 4]], (nb_edges[0], nb_edges[1])
         )
         e_i_a_ab_jb = np.ravel_multi_index(
-            [patterns[:, 1], patterns[:, 5]], (nb_edges_graph_a, nb_edges_graph_b)
+            [patterns[:, 1], patterns[:, 5]], (nb_edges[0], nb_edges[1])
         )
         e_a_j_ib_ab = np.ravel_multi_index(
-            [patterns[:, 2], patterns[:, 4]], (nb_edges_graph_a, nb_edges_graph_b)
+            [patterns[:, 2], patterns[:, 4]], (nb_edges[0], nb_edges[1])
         )
         e_a_j_ab_jb = np.ravel_multi_index(
-            [patterns[:, 2], patterns[:, 5]], (nb_edges_graph_a, nb_edges_graph_b)
+            [patterns[:, 2], patterns[:, 5]], (nb_edges[0], nb_edges[1])
         )
 
-        theta_i_a_ib_ab = jax.ops.segment_sum(
-            np.take(k.ntk, e_i_a_ib_ab), e_i_j_ib_jb, num_segments
-        )
-        theta_i_a_ab_jb = jax.ops.segment_sum(
-            np.take(k.ntk, e_i_a_ab_jb), e_i_j_ib_jb, num_segments
-        )
-        theta_a_j_ib_ab = jax.ops.segment_sum(
-            np.take(k.ntk, e_a_j_ib_ab), e_i_j_ib_jb, num_segments
-        )
-        theta_a_j_ab_jb = jax.ops.segment_sum(
-            np.take(k.ntk, e_a_j_ab_jb), e_i_j_ib_jb, num_segments
+        def agg(x):
+            def scatter_gatter(scatter_ind):
+                return jax.ops.segment_sum(
+                    np.take(x, scatter_ind), e_i_j_ib_jb, num_segments
+                )
+
+            theta_i_a_ib_ab = scatter_gatter(e_i_a_ib_ab)
+            theta_i_a_ab_jb = scatter_gatter(e_i_a_ab_jb)
+            theta_a_j_ib_ab = scatter_gatter(e_a_j_ib_ab)
+            theta_a_j_ab_jb = scatter_gatter(e_a_j_ab_jb)
+
+            thetas_linear = np.array(
+                [theta_i_a_ib_ab, theta_i_a_ab_jb, theta_a_j_ib_ab, theta_a_j_ab_jb]
+            )
+            theta_linear = np.sum(thetas_linear, 0)
+            theta = np.reshape(theta_linear, x.shape)
+            return theta
+
+        ntk = agg(k.ntk)
+        nngp = agg(k.nngp)
+
+        # TODO: Check this? Why did I write this?
+        # theta = theta + k.ntk
+
+        return k.replace(ntk=ntk, nngp=nngp, is_gaussian=True, is_input=False)
+
+    return init_fn, apply_fn, kernel_fn
+
+
+@layer
+@supports_masking(remask_kernel=False)
+def index_aggregation():
+    init_fn = lambda rng, input_shape: (input_shape, ())
+
+    def apply_fn(
+        params,
+        inputs: np.ndarray,
+        *,
+        graph_indx: Optional[np.ndarray] = None,
+        nb_graphs: Optional[int] = None,
+        **kwargs
+    ):
+
+        return np.apply_along_axis(
+            lambda x: jax.ops.segment_sum(x, graph_indx, num_segments=nb_graphs),
+            0,
+            np.squeeze(inputs),
         )
 
-        thetas_linear = np.zeros((theta_i_a_ab_jb.shape[0], 1))
-        thetas_linear = np.append(thetas_linear, np.expand_dims(theta_i_a_ib_ab, 1), 1)
-        thetas_linear = np.append(thetas_linear, np.expand_dims(theta_i_a_ab_jb, 1), 1)
-        thetas_linear = np.append(thetas_linear, np.expand_dims(theta_a_j_ib_ab, 1), 1)
-        thetas_linear = np.append(thetas_linear, np.expand_dims(theta_a_j_ab_jb, 1), 1)
+    def kernel_fn(
+        k: Kernel,
+        *,
+        graph_indx: Tuple[Optional[np.ndarray], Optional[np.ndarray]] = (None, None),
+        nb_graphs: Tuple[Optional[int], Optional[int]] = (None, None),
+        **kwargs
+    ):
+        def agg(x, kernel_graph_indx):
+            agg_x = jax.ops.segment_sum(
+                np.reshape(x, (-1)),
+                kernel_graph_indx,
+                num_segments=nb_graphs[0] * nb_graphs[1],
+            )
+            agg_x = np.reshape(agg_x, nb_graphs)
+            agg_x = np.expand_dims(agg_x, 0)
+            agg_x = np.expand_dims(agg_x, 0)
+            return agg_x
 
-        theta_linear = np.sum(thetas_linear, 1)
-        theta = np.reshape(theta_linear, k.ntk.shape)
-        thera = theta + k.ntk
+        k_prod_graph_indx = row_wise_karthesian_prod(
+            np.expand_dims(graph_indx[0], 1), np.expand_dims(graph_indx[1], 1)
+        )
+        kernel_graph_indx = np.ravel_multi_index(
+            [k_prod_graph_indx[:, 0], k_prod_graph_indx[:, 1]], nb_graphs
+        )
 
-        return k.replace(ntk=theta, is_gaussian=True, is_input=False)
+        # Todo:
+        # Do I need to calculate the cov1, cov2 too?
+
+        agg_ntk = agg(k.ntk, kernel_graph_indx)
+        agg_nngp = agg(k.nngp, kernel_graph_indx)
+
+        return k.replace(
+            ntk=agg_ntk, nngp=agg_nngp, is_gaussian=True, is_input=False, channel_axis=1
+        )
 
     return init_fn, apply_fn, kernel_fn
 
