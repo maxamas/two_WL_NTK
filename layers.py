@@ -72,27 +72,11 @@ def two_wl_aggregation():
         *,
         pattern: Tuple[Optional[np.ndarray], Optional[np.ndarray]] = (None, None),
         nb_edges: Tuple[Optional[int], Optional[int]] = (None, None),
-        nb_graphs: Tuple[Optional[int], Optional[int]] = (None, None),
         **kwargs
     ):
 
-        # arrange the incoming kernel matrix as a flatt array
-        # ntk_linear = np.reshape(k.ntk, (-1, 1))
-        # we dont need to reshape, as take works also on the multidimensional array
+        num_segments = int(np.prod(np.array(k.ntk.shape)))
 
-        # a double sum is one sum over the karthesian product of
-        # the sets the two sums sum.
-        # pattern has columns: batch, node i, node j, node a
-        # the karthesian product (A x B) ist than:
-        # b_A, i_A, j_A, a_A, b_B, i_B, j_B, a_B
-        #   0,   1,   2,   3,   4,   5,   6,   7
-        # rearrange the columns to:
-        # b_A, b_B, i_A, i_B, j_A, j_B, a_A, a_B
-        #   0,   1,   2,   3,   4,   5,   6,   7
-        # the colmns of patterns are the indices for edges i_j i_a a_j ib_jb ib_ab ab_jb
-        #
-        #                                                     0   1   2     3     4     5
-        num_segments = nb_graphs[0] * nb_graphs[1]
         patterns = row_wise_karthesian_prod(pattern[0], pattern[1])
 
         e_i_j_ib_jb = np.ravel_multi_index(
@@ -112,15 +96,18 @@ def two_wl_aggregation():
         )
 
         def agg(x):
-            def scatter_gatter(scatter_ind):
-                return jax.ops.segment_sum(
-                    np.take(x, scatter_ind), e_i_j_ib_jb, num_segments
-                )
-
-            theta_i_a_ib_ab = scatter_gatter(e_i_a_ib_ab)
-            theta_i_a_ab_jb = scatter_gatter(e_i_a_ab_jb)
-            theta_a_j_ib_ab = scatter_gatter(e_a_j_ib_ab)
-            theta_a_j_ab_jb = scatter_gatter(e_a_j_ab_jb)
+            theta_i_a_ib_ab = jax.ops.segment_sum(
+                np.take(x, e_i_a_ib_ab), e_i_j_ib_jb, num_segments
+            )
+            theta_i_a_ab_jb = jax.ops.segment_sum(
+                np.take(x, e_i_a_ab_jb), e_i_j_ib_jb, num_segments
+            )
+            theta_a_j_ib_ab = jax.ops.segment_sum(
+                np.take(x, e_a_j_ib_ab), e_i_j_ib_jb, num_segments
+            )
+            theta_a_j_ab_jb = jax.ops.segment_sum(
+                np.take(x, e_a_j_ab_jb), e_i_j_ib_jb, num_segments
+            )
 
             thetas_linear = np.array(
                 [theta_i_a_ib_ab, theta_i_a_ab_jb, theta_a_j_ib_ab, theta_a_j_ab_jb]
@@ -131,9 +118,6 @@ def two_wl_aggregation():
 
         ntk = agg(k.ntk)
         nngp = agg(k.nngp)
-
-        # TODO: Check this? Why did I write this?
-        # theta = theta + k.ntk
 
         return k.replace(ntk=ntk, nngp=nngp, is_gaussian=True, is_input=False)
 
