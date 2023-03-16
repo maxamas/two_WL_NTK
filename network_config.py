@@ -1,4 +1,4 @@
-from layers import get_two_wl_aggregation_layer
+from layers import get_two_wl_aggregation_layer, index_aggregation
 from typing import Callable, Iterable, Optional, Sequence, Tuple, Union
 from neural_tangents import Kernel
 from neural_tangents._src.stax.requirements import (
@@ -23,7 +23,7 @@ def get_2wl_network_configuration(
     )
 
     layers = tuple(tuple(two_wl_aggregation_layer) for i in range(layers)) + (
-        tuple(stax.GlobalSumPool()),
+        tuple(index_aggregation()),
         tuple(stax.Dense(output_layer_wide)),
     )
 
@@ -42,7 +42,7 @@ def get_gcn_network_configuration(
     )
 
     layers = tuple(tuple(gcn_layer) for i in range(layers)) + (
-        tuple(stax.GlobalSumPool()),
+        tuple(stax.index_aggregation()),
         tuple(stax.Dense(output_layer_wide)),
     )
 
