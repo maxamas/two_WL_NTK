@@ -93,14 +93,16 @@ def twl_sparse_edge_features(
 
 def check_if_output_allready_exists(type: str, dataset_path: str) -> bool:
     def check(files: List[str]) -> bool:
-        all_not_exist = True
+        all_exist = True
         for f in files:
             f_exists = os.path.exists(dataset_path + f)
             if f_exists:
                 print(f"found file: {dataset_path + f}")
-            all_not_exist = all_not_exist and not f_exists
+            else:
+                print(f"not found file: {dataset_path + f}")
+            all_exist = all_exist and f_exists
 
-        return not all_not_exist
+        return all_exist
 
     files_TWL = [
         "/two_wl_edge_features.npy",
