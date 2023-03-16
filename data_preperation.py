@@ -95,8 +95,10 @@ def check_if_output_allready_exists(type: str, dataset_path: str) -> bool:
     def check(files: List[str]) -> bool:
         all_not_exist = True
         for f in files:
-            print(f"found dataset: {dataset_path + f}")
-            all_not_exist = all_not_exist and not os.path.exists(dataset_path + f)
+            f_exists = os.path.exists(dataset_path + f)
+            if f_exists:
+                print(f"found file: {dataset_path + f}")
+            all_not_exist = all_not_exist and not f_exists
 
         return not all_not_exist
 
