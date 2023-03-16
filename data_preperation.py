@@ -105,6 +105,7 @@ def check_if_output_allready_exists(type: str, dataset_path: str) -> bool:
         "/two_wl_ys.npy",
         "/two_wl_nb_edges.npy",
         "/two_wl_patterns_graph_map.npy",
+        "/two_wl_patterns_not_moved.npy",
     ]
 
     files_GCN = [
@@ -113,6 +114,7 @@ def check_if_output_allready_exists(type: str, dataset_path: str) -> bool:
         "/gcn_sparse_ys.npy",
         "/gcn_sparse_nb_nodes.npy",
         "/gcn_sparse_patterns_graph_map.npy",
+        "/gcn_sparse_patterns_not_moved.npy",
     ]
 
     if type == "TWL":
@@ -180,6 +182,9 @@ def prepare_tu_data_for_2WL(
             pattern = jnp.append(pattern, current_pattern + nb_edges_cum, 0)
             nb_edges_cum += current_nb_edges
 
+        # for GD it is better to have patterns not moved (easier to make batches)
+        pattern_not_moved = jnp.transpose(jnp.array(dataset_patterns))
+
         edge_features = dataset_edge_features[0]
         for current_edge_features in dataset_edge_features[1:]:
             edge_features = jnp.append(edge_features, current_edge_features, 0)
@@ -192,6 +197,7 @@ def prepare_tu_data_for_2WL(
 
         jnp.save(dataset_path + f"/two_wl_edge_features", edge_features)
         jnp.save(dataset_path + f"/two_wl_patterns", pattern)
+        jnp.save(dataset_path + f"/two_wl_patterns_not_moved", pattern_not_moved)
         jnp.save(dataset_path + f"/two_wl_ys", jnp.array(dataset_ys))
         jnp.save(dataset_path + f"/two_wl_nb_edges", jnp.array(dataset_nb_edges))
         jnp.save(
@@ -249,6 +255,9 @@ def prepare_tu_data_for_GCN(
             pattern = jnp.append(pattern, current_pattern + nb_nodes_cum, 0)
             nb_nodes_cum += current_nb_nodes
 
+        # for GD it is better to have patterns not moved (easier to make batches)
+        pattern_not_moved = jnp.transpose(jnp.array(dataset_patterns))
+
         node_features = dataset_node_features[0]
         for current_node_features in dataset_node_features[1:]:
             node_features = jnp.append(node_features, current_node_features, 0)
@@ -268,6 +277,7 @@ def prepare_tu_data_for_GCN(
         print(f"Saving output files at: {dataset_path}")
         jnp.save(dataset_path + f"/gcn_sparse_node_features", node_features)
         jnp.save(dataset_path + f"/gcn_sparse_patterns", pattern)
+        jnp.save(dataset_path + f"/gcn_sparse_patterns_not_moved", pattern_not_moved)
         jnp.save(dataset_path + f"/gcn_sparse_ys", jnp.array(dataset_ys))
         jnp.save(dataset_path + f"/gcn_sparse_nb_nodes", jnp.array(dataset_nb_nodes))
         jnp.save(
