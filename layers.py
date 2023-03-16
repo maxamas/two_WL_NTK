@@ -137,9 +137,9 @@ def index_aggregation():
         nb_graphs: Optional[int] = None,
         **kwargs
     ):
-
+        num_segments = nb_graphs
         return np.apply_along_axis(
-            lambda x: jax.ops.segment_sum(x, graph_indx, num_segments=nb_graphs),
+            lambda x: jax.ops.segment_sum(x, graph_indx, num_segments),
             0,
             np.squeeze(inputs),
         )
@@ -151,11 +151,13 @@ def index_aggregation():
         nb_graphs: Tuple[Optional[int], Optional[int]] = (None, None),
         **kwargs
     ):
+        num_segments = nb_graphs[0] * nb_graphs[1]
+
         def agg(x, kernel_graph_indx):
             agg_x = jax.ops.segment_sum(
                 np.reshape(x, (-1)),
                 kernel_graph_indx,
-                num_segments=nb_graphs[0] * nb_graphs[1],
+                num_segments,
             )
             agg_x = np.reshape(agg_x, nb_graphs)
             agg_x = np.expand_dims(agg_x, 0)
