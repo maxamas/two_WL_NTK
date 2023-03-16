@@ -188,7 +188,9 @@ def prepare_tu_data_for_2WL(
             nb_edges_cum += current_nb_edges
 
         # for GD it is better to have patterns not moved (easier to make batches)
-        pattern_not_moved = jnp.transpose(jnp.array(dataset_patterns))
+        pattern_not_moved = dataset_patterns[0]
+        for current_pattern in dataset_patterns:
+            pattern_not_moved = jnp.append(pattern_not_moved, current_pattern, 0)
 
         edge_features = dataset_edge_features[0]
         for current_edge_features in dataset_edge_features[1:]:
@@ -261,7 +263,9 @@ def prepare_tu_data_for_GCN(
             nb_nodes_cum += current_nb_nodes
 
         # for GD it is better to have patterns not moved (easier to make batches)
-        pattern_not_moved = jnp.transpose(jnp.array(dataset_patterns))
+        pattern_not_moved = dataset_patterns[0]
+        for current_pattern in dataset_patterns:
+            pattern_not_moved = jnp.append(pattern_not_moved, current_pattern, 0)
 
         node_features = dataset_node_features[0]
         for current_node_features in dataset_node_features[1:]:
