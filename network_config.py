@@ -42,7 +42,7 @@ def get_gcn_network_configuration(
     )
 
     layers = tuple(tuple(gcn_layer) for i in range(layers)) + (
-        tuple(stax.index_aggregation()),
+        tuple(index_aggregation()),
         tuple(stax.Dense(output_layer_wide)),
     )
 
