@@ -252,7 +252,7 @@ def prepare_tu_data_for_GCN(
             dataset_patterns.append(edge_list)
             dataset_ys.append(jnp.array(data.y))
             dataset_nb_nodes.append(nb_nodes)
-            patterns_graph_map.append(node_features.shape[0] + prev_pattern_graph_map)
+            patterns_graph_map.append(edge_list.shape[0] + prev_pattern_graph_map)
             prev_pattern_graph_map = patterns_graph_map[-1]
 
         # merge all patterns and all edge lists into one big pattern
@@ -285,6 +285,20 @@ def prepare_tu_data_for_GCN(
         pattern = jnp.expand_dims(pattern, 0)
         pattern = jnp.expand_dims(pattern, 2)
 
+        # index arrays
+        patterns_graph_map = jnp.array(patterns_graph_map)
+        dataset_nb_nodes = jnp.array(dataset_nb_nodes)
+        graph_indx = jnp.repeat(
+            jnp.array(range(dataset_nb_nodes.shape[0])), jnp.array(dataset_nb_nodes)
+        )
+        pattern_len = patterns_graph_map
+        pattern_len = pattern_len.at[1:].set(
+            patterns_graph_map[1:] - patterns_graph_map[:-1]
+        )
+        pattern_graph_indx = jnp.repeat(
+            jnp.array(range(pattern_len.shape[0])), jnp.array(pattern_len)
+        )
+
         if not os.path.exists(dataset_path):
             print(f"Creating directory: {dataset_path}")
             os.makedirs(dataset_path)
@@ -294,11 +308,13 @@ def prepare_tu_data_for_GCN(
         jnp.save(dataset_path + f"/gcn_sparse_patterns", pattern)
         jnp.save(dataset_path + f"/gcn_sparse_patterns_not_moved", pattern_not_moved)
         jnp.save(dataset_path + f"/gcn_sparse_ys", jnp.array(dataset_ys))
-        jnp.save(dataset_path + f"/gcn_sparse_nb_nodes", jnp.array(dataset_nb_nodes))
+        jnp.save(dataset_path + f"/gcn_sparse_nb_nodes", dataset_nb_nodes)
         jnp.save(
             dataset_path + f"/gcn_sparse_patterns_graph_map",
-            jnp.array(patterns_graph_map),
+            patterns_graph_map,
         )
+        jnp.save(dataset_path + f"/gcn_sparse_graph_indx", graph_indx)
+        jnp.save(dataset_path + f"/gcn_sparse_pattern_graph_indx", pattern_graph_indx)
 
 
 if __name__ == "__main__":
