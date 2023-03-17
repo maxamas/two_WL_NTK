@@ -111,6 +111,8 @@ def check_if_output_allready_exists(type: str, dataset_path: str) -> bool:
         "/two_wl_nb_edges.npy",
         "/two_wl_patterns_graph_map.npy",
         "/two_wl_patterns_not_moved.npy",
+        "/two_wl__graph_indx.npy",
+        "/two_wl__pattern_graph_indx.npy",
     ]
 
     files_GCN = [
@@ -194,12 +196,24 @@ def prepare_tu_data_for_2WL(
         for current_pattern in dataset_patterns[1:]:
             pattern_not_moved = jnp.append(pattern_not_moved, current_pattern, 0)
 
-        print(pattern.shape)
-        print(pattern_not_moved.shape)
-
         edge_features = dataset_edge_features[0]
         for current_edge_features in dataset_edge_features[1:]:
             edge_features = jnp.append(edge_features, current_edge_features, 0)
+
+        # index array for pattern and edge list
+        dataset_nb_edges = jnp.array(dataset_nb_edges)
+        patterns_graph_map = jnp.array(patterns_graph_map)
+        pattern_len = patterns_graph_map
+        pattern_len = pattern_len.at[1:].set(
+            patterns_graph_map[1:] - patterns_graph_map[:-1]
+        )
+        pattern_graph_indx = jnp.repeat(
+            jnp.array(range(pattern_len.shape[0])), jnp.array(pattern_len)
+        )
+
+        graph_indx = jnp.repeat(
+            jnp.array(range(dataset_nb_edges.shape[0])), jnp.array(dataset_nb_edges)
+        )
 
         if not os.path.exists(dataset_path):
             print(f"Creating directory: {dataset_path}")
@@ -211,10 +225,10 @@ def prepare_tu_data_for_2WL(
         jnp.save(dataset_path + f"/two_wl_patterns", pattern)
         jnp.save(dataset_path + f"/two_wl_patterns_not_moved", pattern_not_moved)
         jnp.save(dataset_path + f"/two_wl_ys", jnp.array(dataset_ys))
-        jnp.save(dataset_path + f"/two_wl_nb_edges", jnp.array(dataset_nb_edges))
-        jnp.save(
-            dataset_path + f"/two_wl_patterns_graph_map", jnp.array(patterns_graph_map)
-        )
+        jnp.save(dataset_path + f"/two_wl_nb_edges", dataset_nb_edges)
+        jnp.save(dataset_path + f"/two_wl_patterns_graph_map", patterns_graph_map)
+        jnp.save(dataset_path + f"/two_wl_pattern_graph_indx", pattern_graph_indx)
+        jnp.save(dataset_path + f"/two_wl_graph_indx", graph_indx)
 
 
 def prepare_tu_data_for_GCN(
@@ -317,6 +331,52 @@ def prepare_tu_data_for_GCN(
         )
         jnp.save(dataset_path + f"/gcn_sparse_graph_indx", graph_indx)
         jnp.save(dataset_path + f"/gcn_sparse_pattern_graph_indx", pattern_graph_indx)
+
+
+def load_twl_data(dataset_path, pattern_moved=True):
+    edge_features = jnp.load(dataset_path + f"/two_wl_edge_features.npy")
+    if pattern_moved:
+        pattern = jnp.load(dataset_path + f"/two_wl_patterns.npy")
+    else:
+        pattern = jnp.load(dataset_path + f"/two_wl_patterns_not_moved.npy")
+    Y = jnp.load(dataset_path + f"/two_wl_ys.npy")
+    nb_edges = jnp.load(dataset_path + f"/two_wl_nb_edges.npy")
+    patterns_graph_map = jnp.load(dataset_path + f"/two_wl_patterns_graph_map.npy")
+    pattern_graph_indx = jnp.load(dataset_path + f"/two_wl_pattern_graph_indx")
+    graph_indx = jnp.load(dataset_path + f"/two_wl_graph_indx")
+
+    return (
+        edge_features,
+        pattern,
+        Y,
+        nb_edges,
+        patterns_graph_map,
+        graph_indx,
+        pattern_graph_indx,
+    )
+
+
+def load_gcn_data(dataset_path, pattern_moved=True):
+    node_features = jnp.load(dataset_path + f"/gcn_sparse_node_features.npy")
+    if pattern_moved:
+        pattern = jnp.load(dataset_path + f"/gcn_sparse_patterns.npy")
+    else:
+        pattern = jnp.load(dataset_path + f"/gcn_sparse_patterns_not_moved.npy")
+    Y = jnp.load(dataset_path + f"/gcn_sparse_ys.npy")
+    nb_nodes = jnp.load(dataset_path + f"/gcn_sparse_nb_nodes.npy")
+    patterns_graph_map = jnp.load(dataset_path + f"/gcn_sparse_patterns_graph_map.npy")
+    graph_indx = jnp.load(dataset_path + f"/gcn_sparse_graph_indx.npy")
+    pattern_graph_indx = jnp.load(dataset_path + f"/gcn_sparse_pattern_graph_indx.npy")
+
+    return (
+        node_features,
+        pattern,
+        Y,
+        nb_nodes,
+        patterns_graph_map,
+        graph_indx,
+        pattern_graph_indx,
+    )
 
 
 if __name__ == "__main__":

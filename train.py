@@ -1,7 +1,7 @@
 import os
 
 import pandas as pd
-from utils import *
+from utils_old import *
 import neural_tangents as nt
 from neural_tangents import stax
 from jax import numpy as jnp
@@ -47,31 +47,45 @@ def balance(ys):
     return indices
 
 
-def val_test_split_pattern_array(
-    pattern: Array, train_samples: Array, val_samples: Array, method: str
-) -> Tuple[Array, Array]:
-    """
-    Helper function, because the 2WL pattern and the GCN pattern
-    are indexed in a different way. The GCN pattern has batches,
-    the 2WL pattern has the patterns of all batches in on 2dim array.
-    """
-    if method in ["gcn", "GCN"]:
-        pattern_val = jnp.take(pattern, val_samples, axis=0)
-        pattern_train = jnp.take(pattern, train_samples, axis=0)
+def move_pattern_indices(pattern_sub, cv_folds_idx, graphs_nb_patterns):
 
-        return pattern_train, pattern_val
+    # how many patterns has the subset of graphs
+    graphs_nb_patterns_sub = graphs_nb_patterns[
+        jnp.isin(jnp.array(range(graphs_nb_patterns.shape[0])), cv_folds_idx)
+    ]
 
-    elif method in ["2WL", "TWL", "2wl", "twl"]:
+    # add 0 first element and drop last element
+    tmp = jnp.zeros(graphs_nb_patterns_sub.shape)
+    pattern_sub_segment_sum_moved = tmp.at[1:].set(graphs_nb_patterns_sub[:-1])
 
-        pattern_train = pattern[column_in_values(pattern[:, 0], train_samples), :]
-        pattern_val = pattern[column_in_values(pattern[:, 0], val_samples), :]
+    # add cumsum of number of patterns to the pattern sub array
+    pattern_move_by = jnp.repeat(
+        jnp.array(jnp.cumsum(pattern_sub_segment_sum_moved), dtype="int32"),
+        jnp.array(graphs_nb_patterns_sub, dtype="int32"),
+    )
 
-        return pattern_train, pattern_val
+    # move the pattern indices
+    pattern_sub_moved = pattern_sub + jnp.expand_dims(pattern_move_by, 1)
 
-    else:
-        raise Exception(
-            f"Argument method {method} is unknown in index_pattern_array function call"
-        )
+    return pattern_sub_moved
+
+
+def get_train_val_indexes(hold_out_idx, cv_folds: int, cv_folds_idxs, sorted=True):
+    all_folds = range(cv_folds)
+    val_indxs = jnp.reshape(cv_folds_idxs[[hold_out_idx], :], -1)
+    train_indxs = jnp.reshape(
+        cv_folds_idxs[
+            list(all_folds[:hold_out_idx]) + list(all_folds[hold_out_idx + 1 :]),
+            :,
+        ],
+        -1,
+    )
+
+    # this needs to be sortet, because we need to index the edge features in order
+    train_indxs = jnp.sort(train_indxs)
+    val_indxs = jnp.sort(val_indxs)
+
+    return train_indxs, val_indxs
 
 
 def cv_splits(
@@ -106,21 +120,28 @@ def cv_splits(
 
 
 def cross_validate(
+    n_type: "str",
     X: Array,
     Y: Array,
+    graph_indx: Array,
     pattern: Array,
+    pattern_graph_indx: Array,
     cv_folds: int,
     init_fn: Callable,
     apply_fn: Callable,
     learning_rate: float,
     epochs: int,
-    nn_type: str,
     loss: Callable,
     grad_loss: Callable,
     balance_classes: bool = False,
 ):
-
+    # get an cv_folds x -1 array of indexes to create folds
     cv_folds_idxs = cv_splits(Y, cv_folds, balance_classes)
+
+    # how many patterns has each graph
+    pattern_segment_sum = jax.ops.segment_sum(
+        jnp.ones(pattern_graph_indx.shape), pattern_graph_indx
+    )
 
     train_losses_cv_runs = list()
     val_losses_cv_runs = list()
@@ -130,37 +151,59 @@ def cross_validate(
     for cv_hold_out_fold_idx in range(cv_folds):
         print(f"Start CV fold: {cv_hold_out_fold_idx}")
 
-        all_folds = range(cv_folds)
-        val_samples = cv_folds_idxs[[cv_hold_out_fold_idx], :]
-        train_samples = cv_folds_idxs[
-            list(all_folds[:cv_hold_out_fold_idx])
-            + list(all_folds[cv_hold_out_fold_idx + 1 :]),
-            :,
-        ]
-
-        val_samples = jnp.reshape(val_samples, [-1])
-        train_samples = jnp.reshape(train_samples, [-1])
-        print(
-            f"nb train samples: {train_samples.shape[0]} | nb val samples: {val_samples.shape[0]}"
+        # graph indices which are in training and validation folds
+        train_indxs, val_indxs = get_train_val_indexes(
+            cv_hold_out_fold_idx, cv_folds, cv_folds_idxs
         )
 
-        X_val = jnp.take(X, val_samples, axis=0)
-        Y_val = jnp.take(Y, val_samples, axis=0)
-
-        X_train = jnp.take(X, train_samples, axis=0)
-        Y_train = jnp.take(Y, train_samples, axis=0)
-
-        pattern_train, pattern_val = val_test_split_pattern_array(
-            pattern, train_samples, val_samples, nn_type
+        pattern_train = move_pattern_indices(
+            pattern[jnp.isin(pattern_graph_indx, train_indxs), :],
+            train_indxs,
+            pattern_segment_sum,
         )
+        pattern_val = move_pattern_indices(
+            pattern[jnp.isin(pattern_graph_indx, val_indxs), :],
+            val_indxs,
+            pattern_segment_sum,
+        )
+
+        # pattern subsets
+        if n_type == "gcn":
+            pattern_train = np.expand_dims(pattern_train, (0, 2))
+            pattern_train = np.append(pattern_train, pattern_train, axis=2)
+            pattern_val = np.expand_dims(pattern_val, (0, 2))
+            pattern_val = np.append(pattern_val, pattern_val, axis=2)
+
+        # node / edge features subsets
+        if n_type == "gcn":
+            train_X = X[:, jnp.isin(graph_indx, train_indxs), :]
+            val_X = X[:, jnp.isin(graph_indx, val_indxs), :]
+        else:
+            train_X = X[jnp.isin(graph_indx, train_indxs), :]
+            val_X = X[jnp.isin(graph_indx, val_indxs), :]
+
+        # graph index subsets
+        graph_indx_val = graph_indx[jnp.isin(graph_indx, val_indxs)]
+        graph_indx_train = graph_indx[jnp.isin(graph_indx, train_indxs)]
+
+        # Y subsets
+        Y_val = Y[val_indxs]
+        Y_train = Y[train_indxs]
+
+        nb_graphs_train = jnp.unique(graph_indx_train).shape[0]
+        nb_graphs_val = jnp.unique(graph_indx_val).shape[0]
 
         train_losses, val_losses, train_acc, val_acc = train_loop(
-            X_train,
+            train_X,
+            graph_indx_train,
             Y_train,
             pattern_train,
-            X_val,
+            nb_graphs_train,
+            val_X,
+            graph_indx_val,
             Y_val,
             pattern_val,
+            nb_graphs_val,
             init_fn,
             apply_fn,
             learning_rate,
@@ -179,11 +222,15 @@ def cross_validate(
 
 def train_loop(
     X_train: Array,
+    graph_indx_train: Array,
     Y_train: Array,
     pattern_train: Array,
+    nb_graphs_train: Array,
     X_val: Array,
+    graph_indx_val: Array,
     Y_val: Array,
     pattern_val: Array,
+    nb_graphs_val: Array,
     init_fn: Callable,
     apply_fn: Callable,
     learning_rate: float,
@@ -208,14 +255,39 @@ def train_loop(
     for epoch in range(epochs):
 
         params = get_params(state)
+
         state = opt_apply(
-            epoch, grad_loss(params, X_train, Y_train, pattern_train), state
+            epoch,
+            grad_loss(
+                params,
+                X_train,
+                Y_train,
+                pattern=pattern_train,
+                nb_graphs=nb_graphs_train,
+                graph_indx=graph_indx_train,
+            ),
+            state,
         )
 
         params = get_params(state)
 
-        Y_hat_train = apply_fn(params, X_train, pattern=pattern_train)
-        Y_hat_val = apply_fn(params, X_val, pattern=pattern_val)
+        Y_hat_train = apply_fn(
+            params,
+            X_train,
+            pattern=pattern_train,
+            graph_indx=graph_indx_train,
+            nb_graphs=nb_graphs_train,
+        )
+        Y_hat_val = apply_fn(
+            params,
+            X_val,
+            pattern=pattern_val,
+            graph_indx=graph_indx_val,
+            nb_graphs=nb_graphs_val,
+        )
+
+        Y_hat_train = Y_hat_train[: Y_train.shape[0], :]
+        Y_hat_val = Y_hat_train[: Y_val.shape[0], :]
 
         train_losses += [loss(Y_train, Y_hat_train)]
         val_losses += [loss(Y_val, Y_hat_val)]
