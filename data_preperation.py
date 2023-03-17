@@ -111,8 +111,8 @@ def check_if_output_allready_exists(type: str, dataset_path: str) -> bool:
         "/two_wl_nb_edges.npy",
         "/two_wl_patterns_graph_map.npy",
         "/two_wl_patterns_not_moved.npy",
-        "/two_wl__graph_indx.npy",
-        "/two_wl__pattern_graph_indx.npy",
+        "/two_wl_graph_indx.npy",
+        "/two_wl_pattern_graph_indx.npy",
     ]
 
     files_GCN = [
