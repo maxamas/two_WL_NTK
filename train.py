@@ -149,7 +149,7 @@ def prepare_data_subset(
     graph_indx_sub = graph_indx_full[jnp.isin(graph_indx_full, graph_indx_sub)]
 
     # Y subsets
-    Y_sub = Y_full[jnp.isin(graph_indx_full, graph_indx_sub)]
+    Y_sub = Y_full[jnp.sort(graph_indx_sub)]
 
     nb_graphs_sub = jnp.unique(graph_indx_sub).shape[0]
 
