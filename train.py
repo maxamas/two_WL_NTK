@@ -119,6 +119,45 @@ def cv_splits(
     return out
 
 
+def prepare_data_subset(
+    n_type: str,
+    graph_indx_full: Array,
+    graph_indx_sub: Array,
+    pattern_graph_indx_full: Array,
+    pattern_segment_sum_full: Array,
+    X_full: Array,
+    Y_full: Array,
+    pattern_full: Array,
+):
+    # pattern subset
+    pattern_sub = move_pattern_indices(
+        pattern_full[jnp.isin(pattern_graph_indx_full, graph_indx_sub), :],
+        graph_indx_sub,
+        pattern_segment_sum_full,
+    )
+
+    if n_type == "gcn":
+        # node features subsets
+        X_sub = X_full[:, jnp.isin(graph_indx_full, graph_indx_sub), :]
+
+        # pattern needs to be 3 dimensional batched for gsn
+        pattern_sub = np.expand_dims(pattern_sub, (0, 2))
+        pattern_sub = np.append(pattern_sub, pattern_sub, axis=2)
+    else:
+        # edge features subsets
+        X_sub = X_full[jnp.isin(graph_indx_full, graph_indx_sub), :]
+
+    # graph index subsets
+    graph_indx_sub = graph_indx_full[jnp.isin(graph_indx_full, graph_indx_sub)]
+
+    # Y subsets
+    Y_sub = Y_full[graph_indx_sub]
+
+    nb_graphs_sub = jnp.unique(graph_indx_sub).shape[0]
+
+    return X_sub, Y_sub, pattern_sub, graph_indx_sub, nb_graphs_sub
+
+
 def cross_validate(
     n_type: "str",
     X: Array,
@@ -156,42 +195,39 @@ def cross_validate(
             cv_hold_out_fold_idx, cv_folds, cv_folds_idxs
         )
 
-        pattern_train = move_pattern_indices(
-            pattern[jnp.isin(pattern_graph_indx, train_indxs), :],
+        (
+            train_X,
+            Y_train,
+            pattern_train,
+            graph_indx_train,
+            nb_graphs_train,
+        ) = prepare_data_subset(
+            n_type,
+            graph_indx,
             train_indxs,
+            pattern_graph_indx,
             pattern_segment_sum,
+            X,
+            Y,
+            pattern,
         )
-        pattern_val = move_pattern_indices(
-            pattern[jnp.isin(pattern_graph_indx, val_indxs), :],
+
+        (
+            val_X,
+            Y_val,
+            pattern_val,
+            graph_indx_val,
+            nb_graphs_val,
+        ) = prepare_data_subset(
+            n_type,
+            graph_indx,
             val_indxs,
+            pattern_graph_indx,
             pattern_segment_sum,
+            X,
+            Y,
+            pattern,
         )
-
-        # pattern subsets
-        if n_type == "gcn":
-            pattern_train = np.expand_dims(pattern_train, (0, 2))
-            pattern_train = np.append(pattern_train, pattern_train, axis=2)
-            pattern_val = np.expand_dims(pattern_val, (0, 2))
-            pattern_val = np.append(pattern_val, pattern_val, axis=2)
-
-        # node / edge features subsets
-        if n_type == "gcn":
-            train_X = X[:, jnp.isin(graph_indx, train_indxs), :]
-            val_X = X[:, jnp.isin(graph_indx, val_indxs), :]
-        else:
-            train_X = X[jnp.isin(graph_indx, train_indxs), :]
-            val_X = X[jnp.isin(graph_indx, val_indxs), :]
-
-        # graph index subsets
-        graph_indx_val = graph_indx[jnp.isin(graph_indx, val_indxs)]
-        graph_indx_train = graph_indx[jnp.isin(graph_indx, train_indxs)]
-
-        # Y subsets
-        Y_val = Y[val_indxs]
-        Y_train = Y[train_indxs]
-
-        nb_graphs_train = jnp.unique(graph_indx_train).shape[0]
-        nb_graphs_val = jnp.unique(graph_indx_val).shape[0]
 
         train_losses, val_losses, train_acc, val_acc = train_loop(
             train_X,
