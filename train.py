@@ -1,7 +1,7 @@
 import os
 
 import pandas as pd
-from utils_old import *
+from utils import *
 import neural_tangents as nt
 from neural_tangents import stax
 from jax import numpy as jnp
