@@ -45,7 +45,8 @@ def two_wl_aggregation():
         params, inputs: np.ndarray, *, pattern: Optional[np.ndarray] = None, **kwargs
     ):
 
-        num_segments = inputs.shape[0] * inputs.shape[1] * inputs.shape[2]
+        # num_segments = inputs.shape[0] * inputs.shape[1] * inputs.shape[2]
+        num_segments = inputs.shape[0]
 
         # edges from v_i to v_l
         e_ij = pattern[:, 0]
@@ -191,11 +192,11 @@ def get_two_wl_aggregation_layer(parameterization, layer_wide):
     layer_wide: only relevant if the ntk is derived
     """
     L_branche = stax.serial(
-        stax.Conv(layer_wide, (1, 1), parameterization=parameterization),
+        stax.Dense(layer_wide, parameterization=parameterization),
     )
 
     Gamma_branche = stax.serial(
-        stax.Conv(layer_wide, (1, 1), parameterization=parameterization),
+        stax.Dense(layer_wide, parameterization=parameterization),
         two_wl_aggregation(),
     )
 
