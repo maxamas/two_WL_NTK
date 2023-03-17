@@ -55,9 +55,9 @@ def two_wl_aggregation():
         # edges from v_l to v_j
         e_lj = pattern[:, 2]
 
-        graphs_edge_features = np.reshape(inputs, (-1, inputs.shape[3]))
-        x_gamma_1 = np.take(graphs_edge_features, e_il, axis=0)
-        x_gamma_2 = np.take(graphs_edge_features, e_lj, axis=0)
+        # graphs_edge_features = np.reshape(inputs, (-1, inputs.shape[3]))
+        x_gamma_1 = np.take(inputs, e_il, axis=0)
+        x_gamma_2 = np.take(inputs, e_lj, axis=0)
         X_gamma_1_sum = jax.ops.segment_sum(x_gamma_1, e_ij, num_segments)
         X_gamma_2_sum = jax.ops.segment_sum(x_gamma_2, e_ij, num_segments)
         X_gamma_sum = np.append(
