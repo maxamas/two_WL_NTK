@@ -124,12 +124,24 @@ def index_aggregation():
         nb_graphs: Optional[int] = None,
         **kwargs
     ):
-        num_segments = nb_graphs
-        return np.apply_along_axis(
+
+        # Can not use nb_graphs here as this gives an error when
+        # jiting the apply function for gradient descent
+        # thus need to use the input shape.
+        # (the num_segments argument must be known at complie time
+        # and can not be dynamic)
+        # This implies, that the output shape is of the same
+        # size as the input.
+        # Only the first nb_graphs entries of the output are non 0 thoug.
+        # The hack to make this work is to only consider the
+        # first nb_graphs entires for the loss calculation
+        num_segments = inputs.shape[0]
+        out = np.apply_along_axis(
             lambda x: jax.ops.segment_sum(x, graph_indx, num_segments),
             0,
             np.squeeze(inputs),
         )
+        return out
 
     def kernel_fn(
         k: Kernel,
@@ -157,9 +169,6 @@ def index_aggregation():
         kernel_graph_indx = np.ravel_multi_index(
             [k_prod_graph_indx[:, 0], k_prod_graph_indx[:, 1]], nb_graphs
         )
-
-        # Todo:
-        # Do I need to calculate the cov1, cov2 too?
 
         agg_ntk = agg(k.ntk, kernel_graph_indx)
         agg_nngp = agg(k.nngp, kernel_graph_indx)
