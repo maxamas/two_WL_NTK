@@ -117,12 +117,7 @@ def index_aggregation():
     init_fn = lambda rng, input_shape: (input_shape, ())
 
     def apply_fn(
-        params,
-        inputs: np.ndarray,
-        *,
-        graph_indx: Optional[np.ndarray] = None,
-        nb_graphs: Optional[int] = None,
-        **kwargs
+        params, inputs: np.ndarray, *, graph_indx: Optional[np.ndarray] = None, **kwargs
     ):
 
         # Can not use nb_graphs here as this gives an error when

@@ -92,8 +92,6 @@ def cv_splits(
     Y: Array, nb_folds: int, balance_classes: bool, fill_last_fold: bool = True
 ):
 
-    # TODO implement the balance_classes option
-
     dataset_lenght = Y.shape[0]
     indices = jnp.array(range(dataset_lenght), dtype="int32")
     key = random.PRNGKey(1701)
@@ -151,7 +149,7 @@ def prepare_data_subset(
     graph_indx_sub = graph_indx_full[jnp.isin(graph_indx_full, graph_indx_sub)]
 
     # Y subsets
-    Y_sub = Y_full[graph_indx_sub]
+    Y_sub = Y_full[jnp.isin(graph_indx_full, graph_indx_sub)]
 
     nb_graphs_sub = jnp.unique(graph_indx_sub).shape[0]
 
