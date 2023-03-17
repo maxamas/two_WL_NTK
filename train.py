@@ -229,7 +229,7 @@ def cross_validate(
             pattern,
         )
 
-        train_losses, val_losses, train_acc, val_acc = train_loop(
+        train_losses, val_losses, train_acc, val_acc, _ = train_loop(
             train_X,
             graph_indx_train,
             Y_train,
@@ -273,7 +273,7 @@ def train_loop(
     epochs: int,
     loss: Callable,
     grad_loss: Callable,
-) -> Tuple[List[float], List[float], List[float], List[float]]:
+) -> Tuple[List[float], List[float], List[float], List[float], Tuple]:
 
     key = random.PRNGKey(1701)
     key, subkey = jax.random.split(key)
@@ -335,7 +335,7 @@ def train_loop(
                 f"\t train loss: {train_losses[-1]:.2f} | val loss: {val_losses[-1]:.2f} | train acc: {train_acc[-1]:.4f} | val acc: {val_acc[-1]:.4f}"
             )
 
-    return train_losses, val_losses, train_acc, val_acc
+    return train_losses, val_losses, train_acc, val_acc, params
 
 
 def save_GD_raw_results(
