@@ -342,8 +342,8 @@ def load_twl_data(dataset_path, pattern_moved=True):
     Y = jnp.load(dataset_path + f"/two_wl_ys.npy")
     nb_edges = jnp.load(dataset_path + f"/two_wl_nb_edges.npy")
     patterns_graph_map = jnp.load(dataset_path + f"/two_wl_patterns_graph_map.npy")
-    pattern_graph_indx = jnp.load(dataset_path + f"/two_wl_pattern_graph_indx")
-    graph_indx = jnp.load(dataset_path + f"/two_wl_graph_indx")
+    pattern_graph_indx = jnp.load(dataset_path + f"/two_wl_pattern_graph_indx.npy")
+    graph_indx = jnp.load(dataset_path + f"/two_wl_graph_indx.npy")
 
     return (
         edge_features,
