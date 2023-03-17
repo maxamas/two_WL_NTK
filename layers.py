@@ -45,28 +45,14 @@ def two_wl_aggregation():
         params, inputs: np.ndarray, *, pattern: Optional[np.ndarray] = None, **kwargs
     ):
 
-        # num_segments = inputs.shape[0] * inputs.shape[1] * inputs.shape[2]
-        num_segments = inputs.shape[0]
-
-        # edges from v_i to v_l
-        e_ij = pattern[:, 0]
-        # edges from v_i to v_l
-        e_il = pattern[:, 1]
-        # edges from v_l to v_j
-        e_lj = pattern[:, 2]
-
-        # graphs_edge_features = np.reshape(inputs, (-1, inputs.shape[3]))
-        x_gamma_1 = np.take(inputs, e_il, axis=0)
-        x_gamma_2 = np.take(inputs, e_lj, axis=0)
-        X_gamma_1_sum = jax.ops.segment_sum(x_gamma_1, e_ij, num_segments)
-        X_gamma_2_sum = jax.ops.segment_sum(x_gamma_2, e_ij, num_segments)
-        X_gamma_sum = np.append(
-            np.expand_dims(X_gamma_1_sum, 1), np.expand_dims(X_gamma_2_sum, 1), 1
+        sum_edges_i_a = jax.ops.segment_sum(
+            np.take(inputs, pattern[:, 1], axis=0), pattern[:, 0], inputs.shape[0]
         )
-        X_gamma_sum = np.sum(X_gamma_sum, 1)
+        sum_edges_a_j = jax.ops.segment_sum(
+            np.take(inputs, pattern[:, 2], axis=0), pattern[:, 0], inputs.shape[0]
+        )
 
-        out = np.reshape(X_gamma_sum, inputs.shape)
-        return out
+        return sum_edges_i_a + sum_edges_a_j
 
     def kernel_fn(
         k: Kernel,
