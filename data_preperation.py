@@ -120,6 +120,8 @@ def check_if_output_allready_exists(type: str, dataset_path: str) -> bool:
         "/gcn_sparse_nb_nodes.npy",
         "/gcn_sparse_patterns_graph_map.npy",
         "/gcn_sparse_patterns_not_moved.npy",
+        "/gcn_sparse_graph_indx.npy",
+        "/gcn_sparse_pattern_graph_indx.npy",
     ]
 
     if type == "TWL":
