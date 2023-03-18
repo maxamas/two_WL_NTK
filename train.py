@@ -268,7 +268,7 @@ def cross_validate(
             loss=loss,
             grad_loss=grad_loss,
             batch_size=batch_size,
-            n_type="twl",
+            n_type=n_type,
         )
 
         train_losses_cv_runs.append(train_losses)
