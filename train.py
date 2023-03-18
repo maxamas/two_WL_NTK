@@ -118,6 +118,7 @@ def cv_splits(
 
 
 def prepare_data_subset(
+    move: bool,
     n_type: str,
     graph_indx_full: Array,
     graph_indx_sub: Array,
@@ -128,11 +129,13 @@ def prepare_data_subset(
     pattern_full: Array,
 ):
     # pattern subset
-    pattern_sub = move_pattern_indices(
-        pattern_full[jnp.isin(pattern_graph_indx_full, graph_indx_sub), :],
-        graph_indx_sub,
-        pattern_segment_sum_full,
-    )
+    pattern_sub = pattern_full[jnp.isin(pattern_graph_indx_full, graph_indx_sub), :]
+    if move:
+        pattern_sub = move_pattern_indices(
+            pattern_sub,
+            graph_indx_sub,
+            pattern_segment_sum_full,
+        )
 
     if n_type == "gcn":
         # node features subsets
@@ -146,14 +149,25 @@ def prepare_data_subset(
         X_sub = X_full[jnp.isin(graph_indx_full, graph_indx_sub), :]
 
     # graph index subsets
-    graph_indx_sub = graph_indx_full[jnp.isin(graph_indx_full, graph_indx_sub)]
+    X_graph_indx_sub = graph_indx_full[jnp.isin(graph_indx_full, graph_indx_sub)]
+
+    pattern_graph_indx_sub = pattern_graph_indx_full[
+        jnp.isin(pattern_graph_indx_full, graph_indx_sub)
+    ]
 
     # Y subsets
     Y_sub = Y_full[jnp.sort(graph_indx_sub)]
 
-    nb_graphs_sub = jnp.unique(graph_indx_sub).shape[0]
+    nb_graphs_sub = Y_sub.shape[0]
 
-    return X_sub, Y_sub, pattern_sub, graph_indx_sub, nb_graphs_sub
+    return (
+        X_sub,
+        Y_sub,
+        pattern_sub,
+        X_graph_indx_sub,
+        pattern_graph_indx_sub,
+        nb_graphs_sub,
+    )
 
 
 def cross_validate(
@@ -170,6 +184,7 @@ def cross_validate(
     epochs: int,
     loss: Callable,
     grad_loss: Callable,
+    batch_size: int,
     balance_classes: bool = False,
 ):
     # get an cv_folds x -1 array of indexes to create folds
@@ -198,8 +213,10 @@ def cross_validate(
             Y_train,
             pattern_train,
             graph_indx_train,
+            pattern_graph_indx_train,
             nb_graphs_train,
         ) = prepare_data_subset(
+            False,
             n_type,
             graph_indx,
             train_indxs,
@@ -215,8 +232,10 @@ def cross_validate(
             Y_val,
             pattern_val,
             graph_indx_val,
+            pattern_graph_indx_val,
             nb_graphs_val,
         ) = prepare_data_subset(
+            True,
             n_type,
             graph_indx,
             val_indxs,
@@ -228,22 +247,26 @@ def cross_validate(
         )
 
         train_losses, val_losses, train_acc, val_acc, _ = train_loop(
-            train_X,
-            graph_indx_train,
-            Y_train,
-            pattern_train,
-            nb_graphs_train,
-            val_X,
-            graph_indx_val,
-            Y_val,
-            pattern_val,
-            nb_graphs_val,
-            init_fn,
-            apply_fn,
-            learning_rate,
-            epochs,
-            loss,
-            grad_loss,
+            X_train=train_X,
+            graph_indx_train=graph_indx_train,
+            Y_train=Y_train,
+            pattern_train=pattern_train,
+            pattern_graph_indx_train=pattern_graph_indx_train,
+            nb_graphs_train=nb_graphs_train,
+            X_val=val_X,
+            graph_indx_val=graph_indx_val,
+            Y_val=Y_val,
+            pattern_val=pattern_val,
+            pattern_graph_indx_val=pattern_graph_indx_val,
+            nb_graphs_val=nb_graphs_val,
+            init_fn=init_fn,
+            apply_fn=apply_fn,
+            learning_rate=learning_rate,
+            epochs=epochs,
+            loss=loss,
+            grad_loss=grad_loss,
+            batch_size=batch_size,
+            n_type="twl",
         )
 
         train_losses_cv_runs.append(train_losses)
@@ -254,16 +277,41 @@ def cross_validate(
     return train_losses_cv_runs, val_losses_cv_runs, train_acc_cv_runs, val_acc_cv_runs
 
 
+def batch_splits(key: int, dataset_lenght: int, batch_size: int):
+
+    key, subkey = jax.random.split(key)
+
+    indices = jnp.array(range(dataset_lenght), dtype="int32")
+    indices = random.permutation(subkey, indices)
+
+    if not dataset_lenght % batch_size == 0:
+        nb_batches = dataset_lenght // batch_size + 1
+    else:
+        nb_batches = dataset_lenght // batch_size
+
+    out = jnp.array(jnp.zeros(nb_batches * batch_size), dtype="int32")
+    out = out.at[:dataset_lenght].set(indices)
+
+    key, subkey = jax.random.split(subkey)
+    fill_indices = jax.random.choice(subkey, indices, [out.shape[0] - dataset_lenght])
+    out = out.at[dataset_lenght:].set(fill_indices)
+
+    out = jnp.reshape(out, (nb_batches, batch_size))
+    return out
+
+
 def train_loop(
     X_train: Array,
     graph_indx_train: Array,
     Y_train: Array,
     pattern_train: Array,
+    pattern_graph_indx_train: Array,
     nb_graphs_train: Array,
     X_val: Array,
     graph_indx_val: Array,
     Y_val: Array,
     pattern_val: Array,
+    pattern_graph_indx_val: Array,
     nb_graphs_val: Array,
     init_fn: Callable,
     apply_fn: Callable,
@@ -271,6 +319,8 @@ def train_loop(
     epochs: int,
     loss: Callable,
     grad_loss: Callable,
+    batch_size: int,
+    n_type: str,
 ) -> Tuple[List[float], List[float], List[float], List[float], Tuple]:
 
     key = random.PRNGKey(1701)
@@ -286,38 +336,77 @@ def train_loop(
     val_losses = []
     val_acc = []
 
+    dataset_lenght = Y_train.shape[0]
+
+    # how many patterns has each graph
+    pattern_segment_sum_train = jax.ops.segment_sum(
+        jnp.ones(pattern_graph_indx_train.shape), pattern_graph_indx_train
+    )
+    pattern_segment_sum_val = jax.ops.segment_sum(
+        jnp.ones(pattern_graph_indx_val.shape), pattern_graph_indx_val
+    )
+
     for epoch in range(epochs):
 
-        params = get_params(state)
+        # create batch indices
+        key, subkey = jax.random.split(key)
+        batch_indices = batch_splits(key, dataset_lenght, batch_size)
 
-        state = opt_apply(
-            epoch,
-            grad_loss(
-                params,
+        # loop over batches
+        for batch_i in range(batch_indices.shape[0]):
+
+            # the indices to train on in this iteration
+            batch_indxs = jnp.reshape(batch_indices[[batch_i], :], -1)
+
+            # create batches for x,y,pattern,graph_indx_train
+            # make sure pattern indies are not moved at this point
+            (
+                X_batch,
+                Y_batch,
+                pattern_batch,
+                graph_indx_batch,
+                pattern_graph_indx_batch,
+                nb_graphs_batch,
+            ) = prepare_data_subset(
+                True,
+                n_type,
+                graph_indx_train,
+                batch_indxs,
+                pattern_graph_indx_train,
+                pattern_segment_sum_train,
                 X_train,
                 Y_train,
-                pattern=pattern_train,
-                nb_graphs=nb_graphs_train,
-                graph_indx=graph_indx_train,
-            ),
-            state,
-        )
+                pattern_train,
+            )
 
-        params = get_params(state)
+            # make update for the batch
+            params = get_params(state)
+            state = opt_apply(
+                epoch,
+                grad_loss(
+                    params,
+                    X_batch,
+                    Y_batch,
+                    pattern=pattern_batch,
+                    graph_indx=graph_indx_batch,
+                ),
+                state,
+            )
 
-        Y_hat_train = apply_fn(
-            params,
-            X_train,
-            pattern=pattern_train,
-            graph_indx=graph_indx_train,
-            nb_graphs=nb_graphs_train,
-        )
+            params = get_params(state)
+
+            Y_hat_train = apply_fn(
+                params,
+                X_batch,
+                pattern=pattern_batch,
+                graph_indx=graph_indx_batch,
+            )
+
         Y_hat_val = apply_fn(
             params,
             X_val,
             pattern=pattern_val,
             graph_indx=graph_indx_val,
-            nb_graphs=nb_graphs_val,
         )
 
         Y_hat_train = Y_hat_train[: Y_train.shape[0], :]
