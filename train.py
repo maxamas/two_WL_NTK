@@ -137,13 +137,15 @@ def prepare_data_subset(
             pattern_segment_sum_full,
         )
 
+        if n_type == "gcn":
+            # pattern needs to be 3 dimensional batched for gcn
+            pattern_sub = np.expand_dims(pattern_sub, (0, 2))
+            pattern_sub = np.append(pattern_sub, pattern_sub, axis=2)
+
     if n_type == "gcn":
         # node features subsets
         X_sub = X_full[:, jnp.isin(graph_indx_full, graph_indx_sub), :]
 
-        # pattern needs to be 3 dimensional batched for gsn
-        pattern_sub = np.expand_dims(pattern_sub, (0, 2))
-        pattern_sub = np.append(pattern_sub, pattern_sub, axis=2)
     else:
         # edge features subsets
         X_sub = X_full[jnp.isin(graph_indx_full, graph_indx_sub), :]
