@@ -1,4 +1,4 @@
-from layers import get_two_wl_aggregation_layer, index_aggregation
+from layers import get_two_wl_aggregation_layer, index_aggregation, gcn_aggregation
 from typing import Callable, Iterable, Optional, Sequence, Tuple, Union
 from neural_tangents import Kernel
 from neural_tangents._src.stax.requirements import (
@@ -34,11 +34,9 @@ def get_gcn_network_configuration(
     layers, parameterization, layer_wide, output_layer_wide
 ):
     gcn_layer = stax.serial(
-        stax.Conv(layer_wide, (1, 1), parameterization=parameterization),
+        stax.Dense(layer_wide, parameterization=parameterization),
         stax.Relu(),
-        stax.Aggregate(
-            aggregate_axis=(1, 2), batch_axis=0, channel_axis=3, implementation="SPARSE"
-        ),
+        gcn_aggregation(),
     )
 
     layers = tuple(tuple(gcn_layer) for i in range(layers)) + (
