@@ -30,6 +30,57 @@ from neural_tangents import stax
 
 @layer
 @supports_masking(remask_kernel=False)
+def gcn_aggregation():
+
+    init_fn = lambda rng, input_shape: (input_shape, ())
+
+    def apply_fn(
+        params, inputs: np.ndarray, *, pattern: Optional[np.ndarray] = None, **kwargs
+    ):
+
+        sum_nodes = jax.ops.segment_sum(
+            np.take(inputs, pattern[:, 1], axis=0), pattern[:, 0], inputs.shape[0]
+        )
+
+        return sum_nodes
+
+    def kernel_fn(
+        k: Kernel,
+        *,
+        pattern: Tuple[Optional[np.ndarray], Optional[np.ndarray]] = (None, None),
+        nb_nodes: Tuple[Optional[int], Optional[int]] = (None, None),
+        **kwargs
+    ):
+
+        num_segments = int(np.prod(np.array(k.ntk.shape)))
+
+        patterns = row_wise_karthesian_prod(pattern[0], pattern[1])
+
+        nodes_v_vb = np.ravel_multi_index(
+            [patterns[:, 0], patterns[:, 2]], (nb_nodes[0], nb_nodes[1])
+        )
+        nodes_u_ub = np.ravel_multi_index(
+            [patterns[:, 1], patterns[:, 3]], (nb_nodes[0], nb_nodes[1])
+        )
+
+        def agg(x):
+            kernel = jax.ops.segment_sum(
+                np.take(x, nodes_u_ub), nodes_v_vb, num_segments
+            )
+
+            kernel = np.reshape(kernel, x.shape)
+            return kernel
+
+        ntk = agg(k.ntk)
+        nngp = agg(k.nngp)
+
+        return k.replace(ntk=ntk, nngp=nngp, is_gaussian=True, is_input=False)
+
+    return init_fn, apply_fn, kernel_fn
+
+
+@layer
+@supports_masking(remask_kernel=False)
 def two_wl_aggregation():
     """
     Return a layer, that implements the gatter
