@@ -46,7 +46,7 @@ def gcn_aggregation():
             np.ones(pattern[:, 0].shape[0]), pattern[:, 0], inputs.shape[0]
         )
 
-        return sum_nodes / scalar
+        return sum_nodes / np.expand_dims(scalar, 1)
 
     def kernel_fn(
         k: Kernel,
@@ -76,7 +76,7 @@ def gcn_aggregation():
                 np.ones(nodes_v_vb.shape[0]), nodes_v_vb, num_segments
             )
 
-            kernel = kernel / scalar + 2
+            kernel = kernel / (np.expand_dims(scalar, 1) + 2)
 
             kernel = np.reshape(kernel, x.shape)
             return kernel
