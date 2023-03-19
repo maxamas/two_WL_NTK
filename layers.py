@@ -42,7 +42,11 @@ def gcn_aggregation():
             np.take(inputs, pattern[:, 1], axis=0), pattern[:, 0], inputs.shape[0]
         )
 
-        return sum_nodes
+        scalar = jax.ops.segment_sum(
+            np.ones(pattern[:, 0].shape[0]), pattern[:, 0], inputs.shape[0]
+        )
+
+        return sum_nodes / scalar
 
     def kernel_fn(
         k: Kernel,
@@ -67,6 +71,12 @@ def gcn_aggregation():
             kernel = jax.ops.segment_sum(
                 np.take(x, nodes_u_ub), nodes_v_vb, num_segments
             )
+
+            scalar = jax.ops.segment_sum(
+                np.ones(nodes_v_vb.shape[0]), nodes_v_vb, num_segments
+            )
+
+            kernel = kernel / scalar + 2
 
             kernel = np.reshape(kernel, x.shape)
             return kernel
