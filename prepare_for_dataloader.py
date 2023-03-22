@@ -110,6 +110,7 @@ def prepare_gcn_dataset(
             os.makedirs(sample_path)
         jnp.save(sample_path + "/node_features.npy", node_features)
         jnp.save(sample_path + "/edge_list.npy", edge_list)
+        jnp.save(sample_path + "/y.npy", jnp.array(data.y))
 
 
 def prepare_twl_dataset(
@@ -134,19 +135,12 @@ def prepare_twl_dataset(
 
         jnp.save(sample_path + "/edge_features.npy", edge_features)
         jnp.save(sample_path + "/ref_matrix.npy", ref_matrix)
+        jnp.save(sample_path + "/y.npy", jnp.array(data.y))
 
 
 if __name__ == "__main__":
 
-    tu_datasets = [
-        "MUTAG",
-        "PROTEINS",
-        "PTC",
-        "NCI1",
-        "COLORS-3",  # "COLLAB", is to big
-        "IMDB-BINARY",
-        "IMDB-MULTI",
-    ]
+    tu_datasets = config.dataset_names
 
     for dataset_name in tu_datasets:
         print(f"Preparing Dataset {dataset_name} for GCN: ")
@@ -161,5 +155,3 @@ if __name__ == "__main__":
             config.base_path_tu_datasets,
             config.dataloader_base_path + f"/{dataset_name}/TWL",
         )
-
-        exit()
