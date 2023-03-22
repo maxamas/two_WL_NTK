@@ -121,6 +121,8 @@ def two_wl_aggregation():
         **kwargs
     ):
 
+        # nb_edges is equal to the corresponding shape[0] of the apply_fn inputs argument
+
         num_segments = int(np.prod(np.array(k.ntk.shape)))
 
         patterns = row_wise_karthesian_prod(pattern[0], pattern[1])
