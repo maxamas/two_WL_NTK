@@ -100,7 +100,11 @@ def prepare_gcn_dataset(
     dataset_name: str, tu_datasets_path: str, preprocessed_path: str
 ):
 
-    dataset = TUDataset(root=tu_datasets_path, name=dataset_name)
+    try:
+        dataset = TUDataset(root=tu_datasets_path, name=dataset_name)
+    except Exception as e:
+        print(f"Can not download datset. Error {e}")
+        return None
 
     for i, data in enumerate(dataset):
         edge_list = jnp.transpose(jnp.array(data.edge_index))
@@ -117,7 +121,11 @@ def prepare_twl_dataset(
     dataset_name: str, tu_datasets_path: str, preprocessed_path: str
 ):
 
-    dataset = TUDataset(root=tu_datasets_path, name=dataset_name)
+    try:
+        dataset = TUDataset(root=tu_datasets_path, name=dataset_name)
+    except Exception as e:
+        print(f"Can not download datset. Error {e}")
+        return None
 
     for i, data in enumerate(dataset):
 
