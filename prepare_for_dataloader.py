@@ -152,14 +152,32 @@ if __name__ == "__main__":
 
     for dataset_name in tu_datasets:
         print(f"Preparing Dataset {dataset_name} for GCN: ")
-        prepare_gcn_dataset(
-            dataset_name,
-            config.base_path_tu_datasets,
-            config.dataloader_base_path + f"/{dataset_name}/GCN",
-        )
+        dataload_base_path = config.dataloader_base_path + f"/{dataset_name}/GCN"
+        if not os.path.exists(dataload_base_path):
+            try:
+                prepare_gcn_dataset(
+                    dataset_name,
+                    config.base_path_tu_datasets,
+                    dataload_base_path,
+                )
+            except Exception as e:
+                print(f"Preparing Dataset {dataset_name} for GCN failed! Error {e}")
+        else:
+            print(
+                f"Folder {dataload_base_path} already exits. Skip Datset {dataset_name} for GCN for now. Delete the folder, if you want to rerun the data preperation!"
+            )
         print(f"Preparing Dataset {dataset_name} for TWL: ")
-        prepare_twl_dataset(
-            dataset_name,
-            config.base_path_tu_datasets,
-            config.dataloader_base_path + f"/{dataset_name}/TWL",
-        )
+        dataload_base_path = config.dataloader_base_path + f"/{dataset_name}/TWL"
+        if not os.path.exists(dataload_base_path):
+            try:
+                prepare_twl_dataset(
+                    dataset_name,
+                    config.base_path_tu_datasets,
+                    dataload_base_path,
+                )
+            except Exception as e:
+                print(f"Preparing Dataset {dataset_name} for TWL failed! Error {e}")
+        else:
+            print(
+                f"Folder {dataload_base_path} already exits. Skip Datset {dataset_name} for TWL for now. Delete the folder, if you want to rerun the data preperation!"
+            )
