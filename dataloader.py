@@ -1,7 +1,7 @@
 import copy
 import os
 from jax import numpy as jnp
-from typing import Callable, Iterable, Optional, Sequence, Tuple, Union, List
+from typing import Callable, Iterable, Optional, Sequence, Tuple, Union, List, Dict
 import random
 import jax
 from collections.abc import Generator
@@ -115,6 +115,16 @@ class Dataloader:
         out = el_rm + jnp.expand_dims(el_rm_move_by, 1)
 
         return out
+
+    def get_val_arrays(
+        self,
+    ) -> Dict:
+        pass
+
+    def batch_iterator(
+        self, batch_size: int, all_sorted: bool = False
+    ) -> Iterable[Dict]:
+        pass
 
     def __split_list__(self, indexes: List[int], nb_splits: int):
         split_size = len(indexes) // nb_splits
@@ -240,7 +250,7 @@ class GCN_Dataloader(Dataloader):
 
     def get_val_arrays(
         self,
-    ) -> Tuple[Array, Array, Array, Array, Array, Array]:
+    ) -> Dict:
 
         self.__load_batch__(self.val_ids)
         (
@@ -259,18 +269,19 @@ class GCN_Dataloader(Dataloader):
             edge_list, edge_list_graph_indx, node_features_graph_indx
         )
 
-        return (
-            node_features,
-            edge_list,
-            node_features_graph_indx,
-            edge_list_graph_indx,
-            nb_nodes,
-            ys,
-        )
+        return {
+            "node_features": node_features,
+            "edge_list": edge_list,
+            "node_features_graph_indx": node_features_graph_indx,
+            "edge_list_graph_indx": edge_list_graph_indx,
+            "nb_nodes": nb_nodes,
+            "ys": ys,
+            "nb_graphs": len(self.val_ids),
+        }
 
     def batch_iterator(
         self, batch_size: int, all_sorted: bool = False
-    ) -> Iterable[Tuple[Array, Array, Array, Array, Array, Array, int, int]]:
+    ) -> Iterable[Dict]:
 
         # todo need to return nb of graphs and id_high
 
@@ -293,18 +304,18 @@ class GCN_Dataloader(Dataloader):
             if self.only_batch_in_mem:
                 self.__clear_batch__(batch_indexes)
 
-            yield (
-                node_features,
-                edge_list,
-                node_features_graph_indx,
-                edge_list_graph_indx,
-                nb_nodes,
-                ys,
-                len(batch_indexes),
-                batch_indexes[
+            yield {
+                "node_features": node_features,
+                "edge_list": edge_list,
+                "node_features_graph_indx": node_features_graph_indx,
+                "edge_list_graph_indx": edge_list_graph_indx,
+                "nb_nodes": nb_nodes,
+                "ys": ys,
+                "nb_graphs": len(batch_indexes),
+                "id_high": batch_indexes[
                     -1
                 ],  # This makes only sense for all_sorted=True need for the kernel calculation
-            )
+            }
 
 
 class TWL_Dataloader(Dataloader):
@@ -370,7 +381,7 @@ class TWL_Dataloader(Dataloader):
 
     def get_val_arrays(
         self,
-    ) -> Tuple[Array, Array, Array, Array, Array, Array]:
+    ) -> Dict:
 
         self.__load_batch__(self.val_ids)
         (
@@ -389,18 +400,19 @@ class TWL_Dataloader(Dataloader):
             ref_matrix, ref_matrix_graph_indx, edge_features_graph_indx
         )
 
-        return (
-            edge_features,
-            ref_matrix,
-            edge_features_graph_indx,
-            ref_matrix_graph_indx,
-            nb_edges,
-            ys,
-        )
+        return {
+            "edge_features": edge_features,
+            "ref_matrix": ref_matrix,
+            "edge_features_graph_indx": edge_features_graph_indx,
+            "ref_matrix_graph_indx": ref_matrix_graph_indx,
+            "nb_edges": nb_edges,
+            "ys": ys,
+            "nb_graphs": len(self.val_ids),
+        }
 
     def batch_iterator(
         self, batch_size: int, all_sorted: bool = False
-    ) -> Iterable[Tuple[Array, Array, Array, Array, Array, Array, int, int]]:
+    ) -> Iterable[Dict]:
         batches_indexes = self.__make_batches_indexes__(batch_size, all_sorted)
         for batch_indexes in batches_indexes:
             self.__load_batch__(batch_indexes)
@@ -419,15 +431,15 @@ class TWL_Dataloader(Dataloader):
             if self.only_batch_in_mem:
                 self.__clear_batch__(batch_indexes)
 
-            id_high = batch_indexes[-1]
-
-            yield (
-                edge_features,
-                ref_matrix,
-                edge_features_graph_indx,
-                ref_matrix_graph_indx,
-                nb_edges,
-                ys,
-                len(batch_indexes),
-                id_high,  # This makes only sense for all_sorted=True need for the kernel calculation
-            )
+            yield {
+                "edge_features": edge_features,
+                "ref_matrix": ref_matrix,
+                "edge_features_graph_indx": edge_features_graph_indx,
+                "ref_matrix_graph_indx": ref_matrix_graph_indx,
+                "nb_edges": nb_edges,
+                "ys": ys,
+                "nb_graphs": len(batch_indexes),
+                "id_high": batch_indexes[
+                    -1
+                ],  # This makes only sense for all_sorted=True need for the kernel calculation
+            }
