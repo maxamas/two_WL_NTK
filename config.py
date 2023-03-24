@@ -4,11 +4,11 @@ kernel_base_path = "Data/Kernels"
 dataset_names = [
     "MUTAG",
     "PROTEINS",
-    "PTC",
+    "PTC_MR",
     "NCI1",
-    "COLORS-3",
-    "IMDB-BINARY",
-    "IMDB-MULTI",
+    "COLORS-3", # has no node and edge features
+    "IMDB-BINARY", # has no node and edge features
+    "IMDB-MULTI", # has no node and edge features
 ]
 nn_types = ["TWL", "GCN"]
 
