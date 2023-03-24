@@ -70,7 +70,7 @@ def save_kernels(path: str):
 
             print(f"calculate kernel matrix for {nn_type} dataset {dataset_name}!")
 
-            try:
+            if not os.path.exists(kernel_path):
 
                 if nn_type == "GCN":
                     data_loader = GCN_Dataloader(
@@ -107,8 +107,10 @@ def save_kernels(path: str):
                     data_it_1, data_it_2, decorated_kernel_fn, kernel_path
                 )
 
-            except Exception as e:
-                print(f"Kernel matrix calculation failed with error {e}!")
+            else:
+                print(
+                f"Folder {kernel_path} already exits. Skip Datset {dataset_name} for TWL and GCN for now. Delete the folder, if you want to rerun the kernel calculation!"
+            )
 
 
 if __name__ == "__main__":
