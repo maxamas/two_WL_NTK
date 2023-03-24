@@ -1,4 +1,21 @@
 from jax import numpy as jnp
+import jax
+
+
+def accuracy(ys, logits):
+    return jnp.mean((logits > 0) == ys)
+
+
+def bin_cross_entropy(ys, logits):
+    log_p = jax.nn.log_sigmoid(logits)
+    log_not_p = jax.nn.log_sigmoid(-logits)
+    return jnp.mean(-ys * log_p - (1 - ys) * log_not_p)
+
+
+def cross_entropy_loss(y, logits):
+    probs = jax.nn.softmax(logits)
+    loss = -jnp.sum(y * jnp.log(probs), axis=1)
+    return jnp.mean(loss)
 
 
 def row_wise_karthesian_prod(a, b):
