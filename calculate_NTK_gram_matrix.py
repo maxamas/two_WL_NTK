@@ -1,4 +1,7 @@
+from multiprocessing import BoundedSemaphore
+import multiprocessing
 import os
+from time import sleep
 from jax import numpy as jnp
 from dataloader import GCN_Dataloader, TWL_Dataloader, Dataloader
 import config
@@ -6,6 +9,10 @@ from typing import Callable, Iterable, Optional, Sequence, Tuple, Union, List
 import jax
 from jax._src.typing import Array
 from network_config import get_2wl_network_configuration, get_gcn_network_configuration
+from multiprocessing.pool import Pool
+import warnings
+
+warnings.filterwarnings("ignore")
 
 
 def twl_kernel_function(kernel_fn, type="ntk"):
@@ -36,22 +43,99 @@ def gcn_kernel_function(kernel_fn, type="ntk"):
     )
 
 
-def save_gram_matrix_batch_wise(
-    batch_iterator_1: Callable, batch_iterator_2: Callable, kernel_fn, kernel_path: str
+def save_gram_matrix(
+    nn_type,
+    arrays_1,
+    arrays_2,
+    kernel_path,
 ):
-    for i, arrays_1 in enumerate(batch_iterator_1()):
-        for j, arrays_2 in enumerate(batch_iterator_2()):
-            kernel_matrix = kernel_fn(arrays_1, arrays_2)
-            if not os.path.exists(kernel_path):
-                os.makedirs(kernel_path)
-            jnp.save(
-                kernel_path + f"/NTK_{arrays_1['id_high']}_{arrays_2['id_high']}",
-                kernel_matrix,
+    if nn_type == "GCN":
+        _, _, kernel_fn = get_gcn_network_configuration(
+            layers=10,
+            parameterization="ntk",
+            layer_wide=10,
+            output_layer_wide=1,
+        )
+        decorated_kernel_fn = gcn_kernel_function(kernel_fn, type="ntk")
+
+    elif nn_type == "TWL":
+        _, _, kernel_fn = get_2wl_network_configuration(
+            layers=10,
+            parameterization="ntk",
+            layer_wide=10,
+            output_layer_wide=1,
+        )
+        decorated_kernel_fn = twl_kernel_function(kernel_fn, type="ntk")
+
+    else:
+        print(f"No path for nn_type {nn_type}")
+        exit()
+
+    kernel_matrix = decorated_kernel_fn(arrays_1, arrays_2)
+    jnp.save(
+        kernel_path,
+        kernel_matrix,
+    )
+
+
+def save_gram_matrix_batch_wise(
+    nn_type: str,
+    batch_iterator_1: Callable,
+    batch_iterator_2: Callable,
+    kernel_base_path: str,
+    use_multiprocessing: bool = False,
+    nb_processes: int = 0,
+):
+
+    if not os.path.exists(kernel_base_path):
+        os.makedirs(kernel_base_path)
+
+    if use_multiprocessing:
+        process_pool = multiprocessing.get_context("spawn").Pool(nb_processes)
+        pool_queue = BoundedSemaphore(nb_processes + 2)
+
+        def error_clb(x):
+            print(x)
+            pool_queue.release()
+
+    for arrays_1 in batch_iterator_1():
+        for arrays_2 in batch_iterator_2():
+
+            kernel_path = (
+                kernel_base_path
+                + f"/NTK_{arrays_1['id_high']}_{arrays_2['id_high']}.npy"
             )
-        jnp.save(kernel_path + f"/Ys_2_{arrays_1['id_high']}", arrays_1["id_high"])
+
+            if not os.path.exists(kernel_path):
+
+                if use_multiprocessing:
+                    pool_queue.acquire()
+                    process_pool.apply_async(
+                        save_gram_matrix,
+                        args=(nn_type, arrays_1, arrays_2, kernel_path),
+                        callback=lambda x: pool_queue.release(),
+                        error_callback=error_clb,
+                    )
+                else:
+                    save_gram_matrix(nn_type, arrays_1, arrays_2, kernel_path)
+
+            else:
+                print(
+                    f"Folder {kernel_path} already exits. Skip for now. Delete the folder, if you want to rerun the kernel calculation!"
+                )
+
+        jnp.save(kernel_base_path + f"/Ys_{arrays_1['id_high']}.npy", arrays_1["ys"])
+
+    if use_multiprocessing:
+        process_pool.close()
+        process_pool.join()
 
 
-def save_kernels(path: str):
+def save_kernels(
+    path: str,
+    multiprocessing: bool = False,
+    nb_processes: int = 0,
+):
 
     datasets_names = os.listdir(path)
     datasets_names = [i for i in datasets_names if i in config.dataset_names]
@@ -70,46 +154,30 @@ def save_kernels(path: str):
 
             print(f"calculate kernel matrix for {nn_type} dataset {dataset_name}!")
 
-            if not os.path.exists(kernel_path):
-
-                if nn_type == "GCN":
-                    data_loader = GCN_Dataloader(
-                        file_path=base_path_preprocessed, nb_train_samples=160
-                    )
-                    _, _, kernel_fn = get_gcn_network_configuration(
-                        layers=10,
-                        parameterization="ntk",
-                        layer_wide=10,
-                        output_layer_wide=1,
-                    )
-                    decorated_kernel_fn = gcn_kernel_function(kernel_fn, type="ntk")
-                elif nn_type == "TWL":
-                    data_loader = TWL_Dataloader(
-                        file_path=base_path_preprocessed, nb_train_samples=160
-                    )
-                    # layer with must be specified as int, but is ignored
-                    _, _, kernel_fn = get_2wl_network_configuration(
-                        layers=3,
-                        parameterization="ntk",
-                        layer_wide=10,
-                        output_layer_wide=1,
-                    )
-                    decorated_kernel_fn = twl_kernel_function(kernel_fn, type="ntk")
-                else:
-                    print(f"No path for nn_type {nn_type}")
-                    exit()
-
-                # create a batch iterator for all samples yielded in an ordered way
-                data_it_1 = lambda: data_loader.batch_iterator(5, True)
-                data_it_2 = lambda: data_loader.batch_iterator(5, True)
-
-                save_gram_matrix_batch_wise(
-                    data_it_1, data_it_2, decorated_kernel_fn, kernel_path
+            if nn_type == "GCN":
+                data_loader = GCN_Dataloader(
+                    file_path=base_path_preprocessed, nb_train_samples=160
                 )
 
+            elif nn_type == "TWL":
+                data_loader = TWL_Dataloader(
+                    file_path=base_path_preprocessed, nb_train_samples=160
+                )
             else:
-                print(
-                f"Folder {kernel_path} already exits. Skip Datset {dataset_name} for TWL and GCN for now. Delete the folder, if you want to rerun the kernel calculation!"
+                print(f"No path for nn_type {nn_type}")
+                exit()
+
+            # create a batch iterator for all samples yielded in an ordered way
+            data_it_1 = lambda: data_loader.batch_iterator(5, True)
+            data_it_2 = lambda: data_loader.batch_iterator(5, True)
+
+            save_gram_matrix_batch_wise(
+                nn_type,
+                data_it_1,
+                data_it_2,
+                kernel_path,
+                multiprocessing,
+                nb_processes,
             )
 
 
@@ -117,4 +185,4 @@ if __name__ == "__main__":
 
     nn_types = config.nn_types
 
-    save_kernels(config.dataloader_base_path)
+    save_kernels(config.dataloader_base_path, True, 5)
