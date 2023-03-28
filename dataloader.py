@@ -162,7 +162,7 @@ class Dataloader:
         else:
             train_ids_rem = copy.deepcopy(self.train_ids)
 
-        nb_batches: int = len(train_ids_rem) // batch_size
+        nb_batches: int = len(train_ids_rem) // batch_size + 1
 
         out = list()
         for _ in range(nb_batches):
@@ -173,8 +173,8 @@ class Dataloader:
                 else:
                     current_batch_idxs = random.sample(train_ids_rem, batch_size)
 
-                train_ids_rem = list(
-                    set(train_ids_rem).difference(set(current_batch_idxs))
+                train_ids_rem = sorted(
+                    list(set(train_ids_rem).difference(set(current_batch_idxs)))
                 )
             else:
                 current_batch_idxs = train_ids_rem
@@ -282,8 +282,6 @@ class GCN_Dataloader(Dataloader):
     def batch_iterator(
         self, batch_size: int, all_sorted: bool = False
     ) -> Iterable[Dict]:
-
-        # todo need to return nb of graphs and id_high
 
         batches_indexes = self.__make_batches_indexes__(batch_size, all_sorted)
 

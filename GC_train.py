@@ -209,7 +209,7 @@ def run_cv(datasets_names: List[str], nn_types: List[str]):
                 loss,
             )
 
-            results_path = f"/Results/{dataset_name}/Gradien_Descent/{nn_type}"
+            results_path = f"Results/{dataset_name}/Gradien_Descent/{nn_type}"
 
             time = pd.Timestamp.utcnow().timestamp()
 
@@ -305,7 +305,7 @@ def save_core_results(
     print("max:", max)
 
     # append the reults of the run to the results csv
-    result_csv_path = "/Results/results.csv"
+    result_csv_path = "Results/results.csv"
     result_table_append = pd.DataFrame(
         [
             [
@@ -350,7 +350,21 @@ def save_core_results(
 
 if __name__ == "__main__":
 
-    datasets_names = config.dataset_names[:1]
-    nn_types = config.nn_types[:1]
+    # dataset_names = config.dataset_names[:1]
+    # nn_types = config.nn_types[:1]
 
-    run_cv(datasets_names, nn_types)
+    dataset_names = [
+        # "MUTAG",
+        # "PROTEINS",
+        "PTC_MR",
+        # "NCI1",
+        # "COLORS-3",  # has no node and edge features
+        # "IMDB-BINARY",  # has no node and edge features
+        # "IMDB-MULTI",  # has no node and edge features
+    ]
+    nn_types = [
+        "TWL",
+        # "GCN"
+    ]
+
+    run_cv(dataset_names, nn_types)
