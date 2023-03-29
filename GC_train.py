@@ -403,7 +403,7 @@ def train(
 
     res = train_loop(
         get_batch_iterator,
-        val_arrays["edge_features"].shape,
+        input_shape,
         val_arrays,
         init_fn,
         decorated_apply_fn,
