@@ -348,23 +348,99 @@ def save_core_results(
         result_table.append(result_table_append).to_csv(result_csv_path, index=False)
 
 
+def train(
+    dataset_name,
+    nn_type,
+    base_path_preprocessed=config.dataloader_base_path,
+    gcn_hyper_params=config.gcn_gd_hyperparameters,
+    twl_hyper_params=config.twl_gd_hyperparameters,
+):
+
+    print(f"Train {nn_type} on {dataset_name}!")
+    base_path_preprocessed = base_path_preprocessed + f"/{dataset_name}/{nn_type}/"
+    if nn_type == "GCN":
+        data_loader = GCN_Dataloader(
+            file_path=base_path_preprocessed, nb_train_samples=160
+        )
+        hyper_parameter = gcn_hyper_params[dataset_name]
+        input_shape = data_loader.get_val_arrays()["node_features"].shape
+
+        # load the network configuration
+        init_fn, apply_fn, _ = get_gcn_network_configuration(
+            hyper_parameter["layers"], "standard", hyper_parameter["layer_wide"], 1
+        )
+        decorated_apply_fn = gcn_apply_function(apply_fn)
+
+    elif nn_type == "TWL":
+        data_loader = TWL_Dataloader(
+            file_path=base_path_preprocessed, nb_train_samples=160
+        )
+        hyper_parameter = twl_hyper_params[dataset_name]
+        input_shape = data_loader.get_val_arrays()["edge_features"].shape
+
+        # load the network configuration
+        init_fn, apply_fn, _ = get_2wl_network_configuration(
+            hyper_parameter["layers"], "standard", hyper_parameter["layer_wide"], 1
+        )
+        decorated_apply_fn = twl_apply_function(apply_fn)
+    else:
+        print(f"No path for nn_type {nn_type}")
+        exit()
+
+    get_batch_iterator = lambda: data_loader.batch_iterator(64)
+    val_arrays = data_loader.get_val_arrays()
+
+    # loss function
+    loss = jit(bin_cross_entropy)
+    grad_loss = jit(
+        grad(
+            lambda params, arrays: loss(
+                arrays["ys"],
+                (decorated_apply_fn(params, arrays))[: arrays["ys"].shape[0], :],
+            )
+        )
+    )
+
+    res = train_loop(
+        get_batch_iterator,
+        val_arrays["edge_features"].shape,
+        val_arrays,
+        init_fn,
+        decorated_apply_fn,
+        learning_rate=hyper_parameter["learning_rate"],
+        epochs=hyper_parameter["epochs"],
+        loss=loss,
+        grad_loss=grad_loss,
+    )
+
+    print(decorated_apply_fn(res["params"], val_arrays)[: val_arrays["ys"].shape[0], :])
+
+
 if __name__ == "__main__":
 
-    # dataset_names = config.dataset_names[:1]
-    # nn_types = config.nn_types[:1]
+    # # dataset_names = config.dataset_names[:1]
+    # # nn_types = config.nn_types[:1]
 
-    dataset_names = [
-        # "MUTAG",
-        # "PROTEINS",
-        "PTC_MR",
-        # "NCI1",
-        # "COLORS-3",  # has no node and edge features
-        # "IMDB-BINARY",  # has no node and edge features
-        # "IMDB-MULTI",  # has no node and edge features
-    ]
-    nn_types = [
+    # dataset_names = [
+    #     # "MUTAG",
+    #     # "PROTEINS",
+    #     "PTC_MR",
+    #     # "NCI1",
+    #     # "COLORS-3",  # has no node and edge features
+    #     # "IMDB-BINARY",  # has no node and edge features
+    #     # "IMDB-MULTI",  # has no node and edge features
+    # ]
+    # nn_types = [
+    #     "TWL",
+    #     # "GCN"
+    # ]
+
+    # run_cv(dataset_names, nn_types)
+
+    train(
+        "MUTAG",
         "TWL",
-        # "GCN"
-    ]
-
-    run_cv(dataset_names, nn_types)
+        base_path_preprocessed=config.dataloader_base_path,
+        gcn_hyper_params=config.gcn_gd_hyperparameters,
+        twl_hyper_params=config.twl_gd_hyperparameters,
+    )
