@@ -67,11 +67,10 @@ def train_loop(
             train_losses += [loss(train_arrays["ys"], Y_hat_train)]
             train_acc += [accuracy(train_arrays["ys"], Y_hat_train)]
 
-        Y_hat_val = apply_fn(params, val_arrays)[: val_arrays["ys"].shape[0], :]
-        val_losses += [loss(val_arrays["ys"], Y_hat_val)]
-        val_acc += [accuracy(val_arrays["ys"], Y_hat_val)]
+            Y_hat_val = apply_fn(params, val_arrays)[: val_arrays["ys"].shape[0], :]
+            val_losses += [loss(val_arrays["ys"], Y_hat_val)]
+            val_acc += [accuracy(val_arrays["ys"], Y_hat_val)]
 
-        if epoch % 5 == 0:
             print(
                 f"\t train loss: {train_losses[-1]:.2f} | val loss: {val_losses[-1]:.2f} | train acc: {train_acc[-1]:.4f} | val acc: {val_acc[-1]:.4f}"
             )
