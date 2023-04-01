@@ -44,26 +44,28 @@ def gcn_kernel_function(kernel_fn, type="ntk"):
 
 
 def save_gram_matrix(
-    nn_type,
+    dataset_name: str,
+    nn_type: str,
     arrays_1,
     arrays_2,
     kernel_path,
 ):
+    hyper_params = config.kernel_hyperparameters[dataset_name]
     if nn_type == "GCN":
         _, _, kernel_fn = get_gcn_network_configuration(
             layers=10,
-            parameterization="ntk",
+            parameterization=hyper_params["parameterization"],
             layer_wide=10,
-            output_layer_wide=1,
+            output_layer_wide=hyper_params["output_layer_wide"],
         )
         decorated_kernel_fn = gcn_kernel_function(kernel_fn, type="ntk")
 
     elif nn_type == "TWL":
         _, _, kernel_fn = get_2wl_network_configuration(
             layers=10,
-            parameterization="ntk",
+            parameterization=hyper_params["parameterization"],
             layer_wide=10,
-            output_layer_wide=1,
+            output_layer_wide=hyper_params["output_layer_wide"],
         )
         decorated_kernel_fn = twl_kernel_function(kernel_fn, type="ntk")
 
@@ -79,6 +81,7 @@ def save_gram_matrix(
 
 
 def save_gram_matrix_batch_wise(
+    dataset_name: str,
     nn_type: str,
     batch_iterator_1: Callable,
     batch_iterator_2: Callable,
@@ -86,6 +89,9 @@ def save_gram_matrix_batch_wise(
     use_multiprocessing: bool = False,
     nb_processes: int = 0,
 ):
+    hyper_params = config.kernel_hyperparameters[dataset_name]
+
+    kernel_base_path = kernel_base_path + f"/L_{hyper_params['nb_layers']}"
 
     if not os.path.exists(kernel_base_path):
         os.makedirs(kernel_base_path)
@@ -112,12 +118,14 @@ def save_gram_matrix_batch_wise(
                     pool_queue.acquire()
                     process_pool.apply_async(
                         save_gram_matrix,
-                        args=(nn_type, arrays_1, arrays_2, kernel_path),
+                        args=(dataset_name, nn_type, arrays_1, arrays_2, kernel_path),
                         callback=lambda x: pool_queue.release(),
                         error_callback=error_clb,
                     )
                 else:
-                    save_gram_matrix(nn_type, arrays_1, arrays_2, kernel_path)
+                    save_gram_matrix(
+                        dataset_name, nn_type, arrays_1, arrays_2, kernel_path
+                    )
 
             else:
                 print(
@@ -156,22 +164,31 @@ def save_kernels(
 
             if nn_type == "GCN":
                 data_loader = GCN_Dataloader(
-                    file_path=base_path_preprocessed, nb_train_samples=160
+                    file_path=base_path_preprocessed,
+                    nb_train_samples=160,
+                    only_batch_in_mem=True,
                 )
 
             elif nn_type == "TWL":
                 data_loader = TWL_Dataloader(
-                    file_path=base_path_preprocessed, nb_train_samples=160
+                    file_path=base_path_preprocessed,
+                    nb_train_samples=160,
+                    only_batch_in_mem=True,
                 )
             else:
                 print(f"No path for nn_type {nn_type}")
                 exit()
 
             # create a batch iterator for all samples yielded in an ordered way
-            data_it_1 = lambda: data_loader.batch_iterator(5, True)
-            data_it_2 = lambda: data_loader.batch_iterator(5, True)
+            data_it_1 = lambda: data_loader.batch_iterator(
+                config.kernel_calculation_block_size[dataset_name], True
+            )
+            data_it_2 = lambda: data_loader.batch_iterator(
+                config.kernel_calculation_block_size[dataset_name], True
+            )
 
             save_gram_matrix_batch_wise(
+                dataset_name,
                 nn_type,
                 data_it_1,
                 data_it_2,
@@ -185,4 +202,4 @@ if __name__ == "__main__":
 
     nn_types = config.nn_types
 
-    save_kernels(config.dataloader_base_path, True, 5)
+    save_kernels(config.dataloader_base_path, True, 4)

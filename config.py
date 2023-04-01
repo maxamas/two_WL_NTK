@@ -3,73 +3,51 @@ dataloader_base_path = "Data/Preprocessed/DataLoader"
 kernel_base_path = "Data/Kernels"
 dataset_names = [
     "MUTAG",
-    "PROTEINS",
     "PTC_MR",
-    "NCI1",
-    "COLORS-3",  # has no node and edge features
-    "IMDB-BINARY",  # has no node and edge features
-    "IMDB-MULTI",  # has no node and edge features
+    "COX2",
+    "DHFR",
 ]
 nn_types = ["TWL", "GCN"]
 
 kernel_hyperparameters = {
     "MUTAG": {"parameterization": "ntk", "output_layer_wide": 1, "nb_layers": 10},
-    "PROTEINS": {"parameterization": "ntk", "output_layer_wide": 1, "nb_layers": 10},
     "PTC_MR": {"parameterization": "ntk", "output_layer_wide": 1, "nb_layers": 10},
-    "NCI1": {"parameterization": "ntk", "output_layer_wide": 1, "nb_layers": 10},
-    "COLORS-3": {"parameterization": "ntk", "output_layer_wide": 11, "nb_layers": 10},
-    "IMDB-BINARY": {"parameterization": "ntk", "output_layer_wide": 1, "nb_layers": 10},
-    "IMDB-MULTI": {"parameterization": "ntk", "output_layer_wide": 3, "nb_layers": 10},
+    "COX2": {"parameterization": "ntk", "output_layer_wide": 1, "nb_layers": 10},
+    "DHFR": {"parameterization": "ntk", "output_layer_wide": 1, "nb_layers": 10},
 }
-
 
 gcn_gd_hyperparameters = {
     "MUTAG": {
-        "learning_rate": 0.01,
+        "learning_rate": 0.001,
         "epochs": 100,
-        "layers": 3,
+        "layers": 2,
         "parameterization": "standard",
-        "layer_wide": 32,
+        "layer_wide": 64,
         "output_layer_wide": 1,
-        "batch_size": 64,
+        "batch_size": 32,
         "val_set_portion": 0.2,
         "cv_folds": 10,
+        "dense_layers": [32, 16],
     },
-    "PROTEINS": {},
-    "PTC_MR": {},
-    "NCI1": {},
-    "COLORS-3": {},
-    "IMDB-BINARY": {},
-    "IMDB-MULTI": {},
 }
 
 twl_gd_hyperparameters = {
     "MUTAG": {
-        "learning_rate": 0.01,
+        "learning_rate": 0.001,
         "epochs": 200,
-        "layers": 3,
+        "layers": 10,
         "parameterization": "standard",
-        "layer_wide": 32,
+        "layer_wide": 64,
         "output_layer_wide": 1,
-        "batch_size": 64,
+        "batch_size": 32,
         "val_set_portion": 0.2,
         "cv_folds": 10,
     },
-    "PROTEINS": {},
-    "PTC_MR": {},
-    "NCI1": {},
-    "COLORS-3": {},
-    "IMDB-BINARY": {},
-    "IMDB-MULTI": {},
 }
-
 
 kernel_calculation_block_size = {
     "MUTAG": 50,
-    "PROTEINS": 10,
     "PTC_MR": 50,
-    "NCI1": {},
-    "COLORS-3": {},
-    "IMDB-BINARY": 10,
-    "IMDB-MULTI": 50,
+    "COX2": 50,
+    "DHFR": 50,
 }
