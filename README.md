@@ -6,3 +6,9 @@ scp -r PTC_MR.zip hahn@remote.cip.ifi.lmu.de:~/masterarbeit/two_WL_NTK/Data/TUDa
 
 scp -r hahn@remote.cip.ifi.lmu.de:~/masterarbeit/two_WL_NTK/Data/Preprocessed/DataLoader.zip Data/Preprocessed
 source Thesis/bin/activate
+
+
+scp -r hahn@remote.cip.ifi.lmu.de:~/masterarbeit/two_WL_NTK/Data/Preprocessed/DataLoader.zip Data/Preprocessed
+
+
+tmux new -d 'python GC_train.py > output_5.log'

@@ -366,7 +366,11 @@ def train(
 
         # load the network configuration
         init_fn, apply_fn, _ = get_gcn_network_configuration(
-            hyper_parameter["layers"], "standard", hyper_parameter["layer_wide"], 1
+            hyper_parameter["layers"],
+            "standard",
+            hyper_parameter["layer_wide"],
+            1,
+            hyper_parameter["dense_layers"],
         )
         decorated_apply_fn = gcn_apply_function(apply_fn)
 
@@ -438,7 +442,7 @@ if __name__ == "__main__":
 
     train(
         "MUTAG",
-        "TWL",
+        "GCN",
         base_path_preprocessed=config.dataloader_base_path,
         gcn_hyper_params=config.gcn_gd_hyperparameters,
         twl_hyper_params=config.twl_gd_hyperparameters,
