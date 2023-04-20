@@ -34,7 +34,6 @@ def train_loop(
     loss: Callable,
     grad_loss: Callable,
 ) -> Dict:
-
     key = random.PRNGKey(1701)
     key, subkey = jax.random.split(key)
     _, params = init_fn(subkey, input_shape)
@@ -50,7 +49,6 @@ def train_loop(
 
     for epoch in range(epochs):
         for train_arrays in get_batch_iterator():
-
             # make update for the batch
             params = get_params(state)
             state = opt_apply(
@@ -111,7 +109,6 @@ def cross_validate(
     hyper_parameter: dict,
     loss: Callable,
 ) -> Dict:
-
     init_fn, apply_fn, _ = get_netwok_conf(
         hyper_parameter["layers"],
         hyper_parameter["parameterization"],
@@ -134,7 +131,10 @@ def cross_validate(
     train_acc_cv_runs = list()
     val_acc_cv_runs = list()
 
-    for (train_indx, val_indx) in data_loader.cross_validation_fold_indices(folds):
+    for i, (train_indx, val_indx) in enumerate(
+        data_loader.cross_validation_fold_indices(folds)
+    ):
+        print("Fold: ", i)
         data_loader.set_train_val_ids(train_indx, val_indx)
 
         val_arrays = data_loader.get_val_arrays()
@@ -167,12 +167,16 @@ def cross_validate(
 def run_cv(datasets_names: List[str], nn_types: List[str]):
     for dataset_name in datasets_names:
         for nn_type in nn_types:
-
             print(f"Train {nn_type} on {dataset_name}. ")
 
             base_path_preprocessed = (
                 config.dataloader_base_path + f"/{dataset_name}/{nn_type}"
             )
+
+            hyper_parameter = {
+                k: v[nn_type]
+                for k, v in config.gd_hyperparameters[dataset_name].items()
+            }
 
             if nn_type == "GCN":
                 data_loader = GCN_Dataloader(
@@ -180,7 +184,6 @@ def run_cv(datasets_names: List[str], nn_types: List[str]):
                 )
                 get_netwok_conf = get_gcn_network_configuration
                 get_decorated_apply_fn = gcn_apply_function
-                hyper_parameter = config.gcn_gd_hyperparameters[dataset_name]
                 input_shape = data_loader.get_val_arrays()["node_features"].shape
             elif nn_type == "TWL":
                 data_loader = TWL_Dataloader(
@@ -189,7 +192,6 @@ def run_cv(datasets_names: List[str], nn_types: List[str]):
                 # layer with must be specified as int, but is ignored
                 get_netwok_conf = get_2wl_network_configuration
                 get_decorated_apply_fn = twl_apply_function
-                hyper_parameter = config.twl_gd_hyperparameters[dataset_name]
                 input_shape = data_loader.get_val_arrays()["edge_features"].shape
             else:
                 print(f"No path for nn_type {nn_type}")
@@ -350,11 +352,10 @@ def save_core_results(
 def train(
     dataset_name,
     nn_type,
-    base_path_preprocessed=config.dataloader_base_path,
-    gcn_hyper_params=config.gcn_gd_hyperparameters,
-    twl_hyper_params=config.twl_gd_hyperparameters,
+    base_path_preprocessed,
+    gcn_hyper_params,
+    twl_hyper_params,
 ):
-
     print(f"Train {nn_type} on {dataset_name}!")
     base_path_preprocessed = base_path_preprocessed + f"/{dataset_name}/{nn_type}/"
     if nn_type == "GCN":
@@ -420,30 +421,7 @@ def train(
 
 
 if __name__ == "__main__":
+    dataset_names = config.dataset_names
+    nn_types = config.nn_types
 
-    # # dataset_names = config.dataset_names[:1]
-    # # nn_types = config.nn_types[:1]
-
-    # dataset_names = [
-    #     # "MUTAG",
-    #     # "PROTEINS",
-    #     "PTC_MR",
-    #     # "NCI1",
-    #     # "COLORS-3",  # has no node and edge features
-    #     # "IMDB-BINARY",  # has no node and edge features
-    #     # "IMDB-MULTI",  # has no node and edge features
-    # ]
-    # nn_types = [
-    #     "TWL",
-    #     # "GCN"
-    # ]
-
-    # run_cv(dataset_names, nn_types)
-
-    train(
-        "MUTAG",
-        "GCN",
-        base_path_preprocessed=config.dataloader_base_path,
-        gcn_hyper_params=config.gcn_gd_hyperparameters,
-        twl_hyper_params=config.twl_gd_hyperparameters,
-    )
+    run_cv(dataset_names, nn_types)

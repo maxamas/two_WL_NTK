@@ -106,14 +106,12 @@ def save_gram_matrix_batch_wise(
 
     for arrays_1 in batch_iterator_1():
         for arrays_2 in batch_iterator_2():
-
             kernel_path = (
                 kernel_base_path
                 + f"/NTK_{arrays_1['id_high']}_{arrays_2['id_high']}.npy"
             )
 
             if not os.path.exists(kernel_path):
-
                 if use_multiprocessing:
                     pool_queue.acquire()
                     process_pool.apply_async(
@@ -144,17 +142,14 @@ def save_kernels(
     multiprocessing: bool = False,
     nb_processes: int = 0,
 ):
-
     datasets_names = os.listdir(path)
     datasets_names = [i for i in datasets_names if i in config.dataset_names]
 
     for dataset_name in datasets_names:
-
         nn_types = os.listdir(path + "/" + dataset_name)
         nn_types = [i for i in nn_types if i in config.nn_types]
 
         for nn_type in nn_types:
-
             base_path_preprocessed = (
                 config.dataloader_base_path + f"/{dataset_name}/{nn_type}"
             )
@@ -199,7 +194,4 @@ def save_kernels(
 
 
 if __name__ == "__main__":
-
-    nn_types = config.nn_types
-
     save_kernels(config.dataloader_base_path, True, 4)

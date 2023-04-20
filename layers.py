@@ -14,30 +14,15 @@ import jax
 from utils import row_wise_karthesian_prod
 from neural_tangents import stax
 
-# pattern is a two dimensional array of shape k x 4
-# a edge list from the 4 dimensional intersected adjacency matrix
-# R = np.transpose(np.array(np.nonzero(As_int)))
-# As_int is four dimensional with batch x #nodes x #nodes x #nodes
-# e.g. As_int[a,b,c,:] gives all nodes, which are neighboors
-# of nodes b and c in batch a.
-
-# Thus e.g a row from the pattern array [A,B,C,D] tells us,
-# that node D is a neighboor of nodes B and C in batch A.
-
-
-# TODO: remove the n_nodes argument
-
 
 @layer
 @supports_masking(remask_kernel=False)
 def gcn_aggregation():
-
     init_fn = lambda rng, input_shape: (input_shape, ())
 
     def apply_fn(
         params, inputs: np.ndarray, *, pattern: Optional[np.ndarray] = None, **kwargs
     ):
-
         sum_nodes = jax.ops.segment_sum(
             np.take(inputs, pattern[:, 1], axis=0), pattern[:, 0], inputs.shape[0]
         )
@@ -55,7 +40,6 @@ def gcn_aggregation():
         nb_nodes: Tuple[Optional[int], Optional[int]] = (None, None),
         **kwargs
     ):
-
         num_segments = int(np.prod(np.array(k.ntk.shape)))
 
         patterns = row_wise_karthesian_prod(pattern[0], pattern[1])
@@ -103,7 +87,6 @@ def two_wl_aggregation():
     def apply_fn(
         params, inputs: np.ndarray, *, pattern: Optional[np.ndarray] = None, **kwargs
     ):
-
         sum_edges_i_a = jax.ops.segment_sum(
             np.take(inputs, pattern[:, 1], axis=0), pattern[:, 0], inputs.shape[0]
         )
@@ -120,7 +103,6 @@ def two_wl_aggregation():
         nb_edges: Tuple[Optional[int], Optional[int]] = (None, None),
         **kwargs
     ):
-
         # nb_edges is equal to the corresponding shape[0] of the apply_fn inputs argument
 
         num_segments = int(np.prod(np.array(k.ntk.shape)))
@@ -180,7 +162,6 @@ def index_aggregation():
     def apply_fn(
         params, inputs: np.ndarray, *, graph_indx: Optional[np.ndarray] = None, **kwargs
     ):
-
         # Can not use nb_graphs here as this gives an error when
         # jiting the apply function for gradient descent
         # thus need to use the input shape.
@@ -246,14 +227,22 @@ def get_two_wl_aggregation_layer(parameterization, layer_wide):
         stax.Dense(layer_wide, parameterization=parameterization),
     )
 
-    Gamma_branche = stax.serial(
+    F_branche = stax.serial(
+        stax.Dense(layer_wide, parameterization=parameterization),
+    )
+
+    M_branche = stax.serial(
         stax.Dense(layer_wide, parameterization=parameterization),
         two_wl_aggregation(),
     )
 
+    chi_branch = stax.serial(
+        stax.FanOut(2), stax.parallel(F_branche, M_branche), stax.FanInProd()
+    )
+
     two_wl_aggregation_layer = stax.serial(
         stax.FanOut(2),
-        stax.parallel(L_branche, Gamma_branche),
+        stax.parallel(L_branche, chi_branch),
         stax.FanInSum(),
         stax.Relu(),
     )
